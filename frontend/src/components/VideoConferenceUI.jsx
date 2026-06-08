@@ -21,17 +21,25 @@ import {
   XIcon,
   CopyIcon,
   CheckIcon,
+  SparkIcon,
 } from "./Icons.jsx";
+import NexMeetPanel from "./NexMeetPanel.jsx";
+import { useNexMeetAgent } from "../hooks/useNexMeetAgent.js";
 
 export default function VideoConferenceUI({ roomName, username, onLeave }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [aiOpen, setAiOpen]     = useState(false);
   const [copied, setCopied]     = useState(false);
   const [clock, setClock]       = useState(() => formatTime(new Date()));
 
   const participants         = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const room                 = useRoomContext();
+
+  // NexMeet AI agent — handles wake-word listening, Groq calls, and
+  // syncing the AI conversation across every participant in the room.
+  const agent = useNexMeetAgent({ username, enabled: true });
 
   useEffect(() => {
     const id = setInterval(() => setClock(formatTime(new Date())), 30_000);
@@ -83,8 +91,18 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           </span>
           <button
             type="button"
+            className={`${styles.iconBtn} ${styles.iconBtnAi} ${aiOpen ? styles.iconBtnActive : ""}`}
+            onClick={() => { setAiOpen(v => !v); setChatOpen(false); setInfoOpen(false); }}
+            title="NexMeet AI assistant"
+            aria-label="NexMeet AI assistant"
+          >
+            <SparkIcon size={18} />
+            {agent.listening && <span className={styles.aiDot} aria-hidden />}
+          </button>
+          <button
+            type="button"
             className={`${styles.iconBtn} ${infoOpen ? styles.iconBtnActive : ""}`}
-            onClick={() => { setInfoOpen(v => !v); setChatOpen(false); }}
+            onClick={() => { setInfoOpen(v => !v); setChatOpen(false); setAiOpen(false); }}
             title="Meeting info"
             aria-label="Meeting info"
           >
@@ -93,7 +111,7 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           <button
             type="button"
             className={`${styles.iconBtn} ${chatOpen ? styles.iconBtnActive : ""}`}
-            onClick={() => { setChatOpen(v => !v); setInfoOpen(false); }}
+            onClick={() => { setChatOpen(v => !v); setInfoOpen(false); setAiOpen(false); }}
             title="Toggle chat"
             aria-label="Toggle chat"
           >
@@ -167,6 +185,23 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
             </div>
           )}
         </div>
+
+        {/*
+         * NexMeet AI panel — always mounted so the conversation
+         * (and listening state) persists across open/close.
+         */}
+        <NexMeetPanel
+          open={aiOpen}
+          onClose={() => setAiOpen(false)}
+          conversation={agent.conversation}
+          thinking={agent.thinking}
+          listening={agent.listening}
+          setListening={agent.setListening}
+          partial={agent.partial}
+          supportsSpeech={agent.supportsSpeech}
+          onAsk={agent.ask}
+          error={agent.error}
+        />
 
         {/*
          * Keep <Chat /> mounted at all times — LiveKit's Chat stores

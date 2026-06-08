@@ -39,8 +39,8 @@ html, body, #root {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -87,15 +87,15 @@ html, body, #root {
 [data-lk-theme] .lk-control-bar .lk-button,
 [data-lk-theme] .lk-control-bar .lk-button-group > .lk-button,
 [data-lk-theme] .lk-chat-form-button {
-  height: 44px;
-  min-width: 44px;
-  padding: 0 16px !important;
+  height: 48px;
+  min-width: 48px;
+  padding: 0 18px !important;
   border-radius: 9999px !important;
   background: var(--bg-3) !important;
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
   font-family: var(--font-body) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 500 !important;
   display: inline-flex !important;
   align-items: center;
@@ -134,8 +134,8 @@ html, body, #root {
  * fill="none" outlines and fill="white" inner shapes — forcing
  * currentColor would turn them into solid blobs that look broken). */
 [data-lk-theme] .lk-control-bar .lk-button svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 /* button-group lays out toggle + (hidden) chevron — keep it inline */
@@ -157,9 +157,9 @@ html, body, #root {
 [data-lk-theme] .lk-participant-name {
   background: rgba(0,0,0,0.55) !important;
   color: #fff !important;
-  padding: 4px 10px !important;
+  padding: 5px 12px !important;
   border-radius: 9999px !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -214,7 +214,7 @@ html, body, #root {
 }
 [data-lk-theme] .lk-chat-entry .lk-meta-data {
   color: var(--text-3) !important;
-  font-size: 11.5px !important;
+  font-size: 12.5px !important;
   padding: 0 !important;
   gap: 8px;
 }
@@ -222,12 +222,13 @@ html, body, #root {
   margin-top: 0 !important;
   color: var(--text-2) !important;
   font-weight: 600;
+  font-size: 13px !important;
 }
 [data-lk-theme] .lk-chat-entry .lk-message-body {
   border-radius: 14px !important;
-  padding: 8px 12px !important;
-  font-size: 13.5px !important;
-  line-height: 1.45 !important;
+  padding: 9px 14px !important;
+  font-size: 14.5px !important;
+  line-height: 1.5 !important;
   max-width: 90% !important;
 }
 [data-lk-theme] .lk-chat-entry[data-lk-message-origin="local"] .lk-message-body {
@@ -259,11 +260,11 @@ html, body, #root {
   border: 1px solid var(--border) !important;
   border-radius: 9999px !important;
   color: var(--text) !important;
-  padding: 10px 14px !important;
+  padding: 11px 16px !important;
   font-family: var(--font-body) !important;
-  font-size: 13.5px !important;
+  font-size: 14.5px !important;
   outline: none;
-  height: 40px;
+  height: 44px;
 }
 [data-lk-theme] .lk-chat-form-input::placeholder { color: var(--text-3); }
 [data-lk-theme] .lk-chat-form-input:focus {
@@ -275,10 +276,11 @@ html, body, #root {
   background: var(--accent) !important;
   color: #fff !important;
   border: none !important;
-  height: 40px !important;
+  height: 44px !important;
   min-width: auto !important;
-  padding: 0 16px !important;
+  padding: 0 18px !important;
   font-weight: 600 !important;
+  font-size: 14px !important;
 }
 [data-lk-theme] .lk-chat-form-button:hover { background: #2563eb !important; }
 

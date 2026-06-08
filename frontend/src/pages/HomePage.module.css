@@ -40,7 +40,7 @@
 
 .logoText {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text);
@@ -67,11 +67,11 @@
 
 .badge {
   display: inline-block;
-  padding: 5px 14px;
+  padding: 6px 16px;
   background: rgba(59,130,246,0.1);
   border: 1px solid rgba(59,130,246,0.25);
   border-radius: var(--r-full);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.5px;
   color: var(--accent-2);
@@ -98,9 +98,9 @@
 }
 
 .sub {
-  font-size: 16px;
+  font-size: 17px;
   color: var(--text-2);
-  max-width: 440px;
+  max-width: 480px;
   margin: 0 auto;
   line-height: 1.65;
 }
@@ -108,7 +108,7 @@
 /* Card */
 .card {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
@@ -126,12 +126,12 @@
 }
 
 .tab {
-  padding: 16px;
+  padding: 18px;
   background: none;
   border: none;
   color: var(--text-2);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s, background 0.2s;
@@ -169,22 +169,22 @@
 }
 
 .label {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
   color: var(--text-2);
   text-transform: uppercase;
 }
 
 .input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -200,7 +200,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -208,8 +208,8 @@
 
 .roomCode {
   flex: 1;
-  font-family: "Courier New", monospace;
-  font-size: 14px;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 15px;
   font-weight: 600;
   color: var(--accent-2);
   letter-spacing: 0.5px;
@@ -219,12 +219,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 7px 14px;
   background: rgba(59,130,246,0.12);
   border: 1px solid rgba(59,130,246,0.25);
   border-radius: var(--r-sm);
   color: var(--accent-2);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -238,23 +238,23 @@
 }
 
 .error {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--red);
   background: rgba(239,68,68,0.08);
   border: 1px solid rgba(239,68,68,0.2);
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: var(--r-sm);
 }
 
 .btn {
   width: 100%;
-  padding: 14px;
+  padding: 15px;
   background: var(--accent);
   border: none;
   border-radius: var(--r-md);
   color: #fff;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   letter-spacing: 0.2px;
@@ -287,7 +287,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
@@ -300,7 +300,7 @@
 }
 
 .featLabel {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
   letter-spacing: 0.1px;

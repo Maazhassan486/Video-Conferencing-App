@@ -12,13 +12,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 60px;
+  padding: 0 22px;
+  height: 64px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 20;
-  gap: 16px;
+  gap: 18px;
 }
 
 .topLeft {
@@ -35,7 +35,7 @@
 
 .logoText {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: var(--text);
@@ -43,12 +43,12 @@
 
 .divider {
   width: 1px;
-  height: 22px;
+  height: 24px;
   background: var(--border);
 }
 
 .clock {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
@@ -64,16 +64,16 @@
 }
 
 .roomChip {
-  padding: 7px 16px;
+  padding: 8px 18px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   font-family: "JetBrains Mono", "Courier New", monospace;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--accent-2);
   letter-spacing: 0.3px;
-  max-width: 320px;
+  max-width: 360px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -89,10 +89,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-2);
-  padding: 7px 12px;
+  padding: 8px 14px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
@@ -100,8 +100,8 @@
 }
 
 .iconBtn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--bg-3);
@@ -123,17 +123,56 @@
   color: var(--accent-2);
 }
 
+/* NexMeet AI button — subtle gradient + listening pulse dot */
+.iconBtnAi {
+  position: relative;
+}
+.iconBtnAi::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-md);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.5), rgba(129,140,248,0.5));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.aiDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  border: 2px solid var(--bg-2);
+  box-shadow: 0 0 0 0 rgba(74,222,128,0.6);
+  animation: aiPulse 1.6s infinite;
+}
+
+@keyframes aiPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+  70%  { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+  100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+}
+
 /* ── Info Drawer ──────────────────────────────────────── */
 .infoDrawer {
   position: absolute;
-  top: 72px;
-  right: 20px;
+  top: 76px;
+  right: 22px;
   z-index: 30;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 18px;
-  width: 300px;
+  padding: 20px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -156,7 +195,7 @@
 
 .infoTitle {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.2px;
@@ -185,13 +224,13 @@
 }
 
 .infoLabel {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-3);
   font-weight: 500;
 }
 
 .infoValue {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
   font-weight: 500;
   overflow: hidden;
@@ -204,18 +243,18 @@
   composes: infoValue;
   font-family: "JetBrains Mono", "Courier New", monospace;
   color: var(--accent-2);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .copyInvite {
   margin-top: 6px;
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   background: rgba(59,130,246,0.1);
   border: 1px solid rgba(59,130,246,0.22);
   border-radius: var(--r-md);
   color: var(--accent-2);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -238,7 +277,7 @@
   display: flex;
   overflow: hidden;
   min-height: 0;
-  padding-bottom: 96px; /* leave room for floating control pill */
+  padding-bottom: 104px; /* leave room for floating control pill */
 }
 
 .gridArea {
@@ -292,16 +331,16 @@
 
 .emptyRoom h3 {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.3px;
 }
 
 .emptyRoom p {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-2);
-  max-width: 360px;
+  max-width: 400px;
   line-height: 1.6;
 }
 
@@ -310,13 +349,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 11px 20px;
   background: var(--accent);
   border: none;
   border-radius: var(--r-full);
   color: #fff;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
@@ -333,12 +372,12 @@
 
 .emptyCode {
   margin-top: 6px;
-  padding: 8px 18px;
+  padding: 9px 20px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   font-family: "JetBrains Mono", "Courier New", monospace;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--accent-2);
   letter-spacing: 0.8px;
@@ -360,7 +399,7 @@
 }
 
 .chatSidebarOpen {
-  width: 340px;
+  width: 360px;
   opacity: 1;
 }
 
@@ -375,10 +414,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 15px 20px;
   border-bottom: 1px solid var(--border);
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.2px;
@@ -446,7 +485,7 @@
 
 .controlsDivider {
   width: 1px;
-  height: 26px;
+  height: 28px;
   background: var(--border);
   margin: 0 4px;
 }
@@ -455,13 +494,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 12px 22px;
   background: var(--red);
   border: none;
   border-radius: var(--r-full);
   color: #fff;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
@@ -479,16 +518,16 @@
   .topCenter { display: none; }
   .topBar { padding: 0 14px; gap: 8px; }
   .topRight { gap: 6px; }
-  .participantCount { padding: 6px 10px; }
+  .participantCount { padding: 7px 12px; font-size: 13px; }
   .infoDrawer { right: 12px; left: 12px; width: auto; }
   .chatSidebarOpen {
     width: 100%;
     position: absolute;
-    inset: 60px 0 96px 0;
+    inset: 64px 0 100px 0;
   }
   .chatSidebarClosed { width: 0; }
   .leaveBtn span { display: none; }
-  .leaveBtn { padding: 10px 12px; }
+  .leaveBtn { padding: 12px 14px; }
   .gridArea { padding: 10px 10px 0; }
-  .body { padding-bottom: 92px; }
+  .body { padding-bottom: 100px; }
 }
