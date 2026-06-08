@@ -93,11 +93,43 @@ export function useNexMeetAgent({ username, enabled }) {
   const [sessionUntil, setSessionUntil] = useState(0); // ts (ms) when session auto-closes
   const [error, setError]               = useState(null);
 
-  const seenIdsRef     = useRef(new Set());
+  const seenIdsRef         = useRef(new Set());
+  const spokenIdsRef       = useRef(new Set());
   const peerTranscriptsRef = useRef([]); // [{ by, text, ts }]
-  const sessionTimerRef = useRef(null);
+  const sessionTimerRef    = useRef(null);
 
   const supportsSpeech = isBrowserSpeechSupported();
+
+  /**
+   * Speak an AI answer aloud via the browser's SpeechSynthesis API.
+   * This runs on EVERY client (asker AND peers) — triggered locally
+   * when we generate an answer, and via the data channel when a peer
+   * generates one. That way everyone hears NexMeet from their own
+   * speakers (TTS cannot reliably travel through LiveKit because of
+   * the browser's mic echo cancellation).
+   */
+  const speakAnswer = useCallback((entry) => {
+    if (!entry || entry.type !== "a" || !entry.text) return;
+    if (spokenIdsRef.current.has(entry.id)) return;
+    spokenIdsRef.current.add(entry.id);
+
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    try {
+      const utter = new SpeechSynthesisUtterance(entry.text);
+      utter.rate = 1.05;
+      utter.pitch = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch (e) {
+      console.warn("NexMeet: speechSynthesis failed", e);
+    }
+  }, []);
+
+  const cancelSpeech = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
   // Subscribe to AI conversation messages from peers
   const { message: incoming, send } = useDataChannel(DATA_TOPIC);
@@ -113,8 +145,6 @@ export function useNexMeetAgent({ username, enabled }) {
       //   - { kind: "transcript", by, text, ts }   — what someone said
       //   - everything else: conversation entries (question / answer)
       if (data.kind === "transcript") {
-        // Keep the last few minutes of peer transcripts in memory so
-        // the agent can include them as conversational context.
         peerTranscriptsRef.current = [
           ...peerTranscriptsRef.current,
           { by: data.by, text: data.text, ts: data.ts || Date.now() },
@@ -125,11 +155,15 @@ export function useNexMeetAgent({ username, enabled }) {
       if (data.id && !seenIdsRef.current.has(data.id)) {
         seenIdsRef.current.add(data.id);
         setConversation((prev) => [...prev, data]);
+
+        // Speak any AI answer received from a peer so everyone in the
+        // room hears NexMeet — not just the person who asked.
+        if (data.type === "a") speakAnswer(data);
       }
     } catch (e) {
       console.warn("NexMeet: failed to parse incoming message", e);
     }
-  }, [incoming]);
+  }, [incoming, speakAnswer]);
 
   // Broadcast an AI conversation entry to every participant
   const broadcast = useCallback(
@@ -146,12 +180,6 @@ export function useNexMeetAgent({ username, enabled }) {
     },
     [send]
   );
-
-  const cancelSpeech = useCallback(() => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-  }, []);
 
   // Open / extend the conversation session
   const extendSession = useCallback(() => {
@@ -233,6 +261,24 @@ export function useNexMeetAgent({ username, enabled }) {
 
       setThinking(true);
       setError(null);
+
+      // Abort the request if it stalls — Groq usually answers in <2 s,
+      // but a hung TCP connection or rate-limit pause can otherwise
+      // freeze the UI indefinitely.
+      const controller = new AbortController();
+      const timeoutMs = 20_000;
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const t0 = performance.now();
+
+      // Optional unused suppression for fromVoice — kept on the API in
+      // case we want voice-only behaviours later.
+      void fromVoice;
+
+      console.log(
+        `[NexMeet] → POST ${BACKEND}/ask  (history: ${messagesForModel.length} turns)`,
+        { question, room: room?.name }
+      );
+
       try {
         const res = await fetch(`${BACKEND}/ask`, {
           method: "POST",
@@ -242,19 +288,30 @@ export function useNexMeetAgent({ username, enabled }) {
             askedBy: username,
             room: room?.name,
           }),
+          signal: controller.signal,
         });
         const data = await res.json().catch(() => ({}));
+        const ms = Math.round(performance.now() - t0);
 
         if (!res.ok) {
-          throw new Error(data?.error || `Request failed (${res.status})`);
+          console.error(
+            `[NexMeet] ← ${res.status} in ${ms} ms`,
+            data
+          );
+          throw new Error(
+            data?.error || `Request failed (${res.status} ${res.statusText})`
+          );
         }
 
-        // Agent decided to stay quiet — drop the question silently? No,
-        // keep the user's question visible so they know it was heard,
-        // but don't render an empty AI bubble.
+        console.log(
+          `[NexMeet] ← ${res.status} in ${ms} ms`,
+          data?.silent ? "(silent)" : data?.answer?.slice(0, 80)
+        );
+
+        // Agent decided to stay quiet — keep the user's question visible
+        // (it was already broadcast above) but don't render an empty AI
+        // bubble.
         if (data.silent || data.answer == null) {
-          // Still extend session a bit — they're clearly trying to talk
-          // to NexMeet even if the model judged otherwise.
           if (inSession) extendSession();
           return;
         }
@@ -267,42 +324,51 @@ export function useNexMeetAgent({ username, enabled }) {
           by: "NexMeet",
           ts: Date.now(),
         };
+        // Broadcast over the data channel AND speak locally. Peers will
+        // also hear it locally when they receive aEntry (see the
+        // `incoming` handler above) — that's how we ensure everyone in
+        // the room hears NexMeet, not just the asker.
         broadcast(aEntry);
-
-        // Speak the answer locally so the asker hears it; peers see the
-        // text via the data-channel sync regardless.
-        if (
-          fromVoice &&
-          typeof window !== "undefined" &&
-          window.speechSynthesis
-        ) {
-          try {
-            const utter = new SpeechSynthesisUtterance(answer);
-            utter.rate = 1.05;
-            utter.pitch = 1;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utter);
-          } catch {
-            /* ignore TTS failures */
-          }
-        }
+        speakAnswer(aEntry);
 
         extendSession();
       } catch (e) {
-        const aEntry = {
-          id: `a-${baseId}`,
+        const ms = Math.round(performance.now() - t0);
+        const msg =
+          e.name === "AbortError"
+            ? `Timed out after ${Math.round(timeoutMs / 1000)}s — check backend / Groq status`
+            : e.message || "unknown error";
+        console.error(`[NexMeet] ✗ failed after ${ms} ms`, e);
+
+        // Errors are LOCAL to the asker — don't broadcast a fake answer
+        // to everyone else in the room. Show it inline in the asker's
+        // conversation only.
+        const errEntry = {
+          id: `err-${baseId}`,
           type: "a",
-          text: `Sorry — I couldn't respond. (${e.message || "unknown error"})`,
+          text: `⚠️ ${msg}`,
           by: "NexMeet",
           ts: Date.now(),
+          local: true,
         };
-        broadcast(aEntry);
-        setError(e.message);
+        seenIdsRef.current.add(errEntry.id);
+        spokenIdsRef.current.add(errEntry.id); // never speak error bubbles
+        setConversation((prev) => [...prev, errEntry]);
+        setError(msg);
       } finally {
+        clearTimeout(timeoutId);
         setThinking(false);
       }
     },
-    [broadcast, conversation, extendSession, inSession, room?.name, username]
+    [
+      broadcast,
+      conversation,
+      extendSession,
+      inSession,
+      room?.name,
+      speakAnswer,
+      username,
+    ]
   );
 
   /**

@@ -196,6 +196,13 @@ app.post("/ask", async (req, res) => {
     "• If you don't know something or it requires real-time data, say so briefly.\n" +
     `${askedBy ? `\nThe most recent person who explicitly addressed you is ${askedBy}.\n` : ""}`;
 
+  const lastTurn = cleaned[cleaned.length - 1];
+  const t0 = Date.now();
+  console.log(
+    `[ask] room=${room || "-"} by=${askedBy || "-"} turns=${cleaned.length} ` +
+      `last="${(lastTurn?.content || "").slice(0, 80)}"`
+  );
+
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
@@ -203,23 +210,40 @@ app.post("/ask", async (req, res) => {
       max_tokens: 220,
       messages: [{ role: "system", content: systemPrompt }, ...cleaned],
     });
+    const ms = Date.now() - t0;
 
     const raw =
       completion.choices?.[0]?.message?.content?.trim() ||
       "Sorry, I couldn't come up with a response.";
 
-    // Agent decided not to speak — signal that to the frontend so it
-    // doesn't render an empty bubble or speak silence aloud.
+    const usage = completion.usage || {};
     if (raw === "<silent>" || /^<silent>\.?$/.test(raw)) {
+      console.log(
+        `[ask] ✓ ${ms}ms model=${GROQ_MODEL} tokens=${usage.total_tokens || "?"} (silent)`
+      );
       return res.json({ answer: null, silent: true });
     }
 
+    console.log(
+      `[ask] ✓ ${ms}ms model=${GROQ_MODEL} tokens=${usage.total_tokens || "?"} ` +
+        `answer="${raw.slice(0, 80)}${raw.length > 80 ? "…" : ""}"`
+    );
     return res.json({ answer: raw });
   } catch (err) {
-    console.error("Groq /ask error:", err);
-    return res
-      .status(500)
-      .json({ error: "Failed to reach the NexMeet AI service" });
+    const ms = Date.now() - t0;
+    // Surface the real Groq error code/status — typical culprits are 429
+    // (rate limit), 401 (bad key), 503 (Groq outage), or timeouts.
+    const status = err?.status || err?.response?.status;
+    const code   = err?.code || err?.error?.code;
+    const detail = err?.error?.message || err?.message || String(err);
+    console.error(
+      `[ask] ✗ ${ms}ms model=${GROQ_MODEL} status=${status || "-"} code=${code || "-"} :: ${detail}`
+    );
+    return res.status(502).json({
+      error: `Groq error${status ? ` (${status})` : ""}: ${detail}`,
+      status: status || null,
+      code: code || null,
+    });
   }
 });
 
