@@ -91,13 +91,18 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           </span>
           <button
             type="button"
-            className={`${styles.iconBtn} ${styles.iconBtnAi} ${aiOpen ? styles.iconBtnActive : ""}`}
+            className={`${styles.iconBtn} ${styles.iconBtnAi} ${aiOpen ? styles.iconBtnActive : ""} ${agent.inSession ? styles.iconBtnAiSession : ""}`}
             onClick={() => { setAiOpen(v => !v); setChatOpen(false); setInfoOpen(false); }}
-            title="NexMeet AI assistant"
+            title={agent.inSession ? "NexMeet — in conversation" : "NexMeet AI assistant"}
             aria-label="NexMeet AI assistant"
           >
             <SparkIcon size={18} />
-            {agent.listening && <span className={styles.aiDot} aria-hidden />}
+            {(agent.listening || agent.inSession) && (
+              <span
+                className={`${styles.aiDot} ${agent.inSession ? styles.aiDotSession : ""}`}
+                aria-hidden
+              />
+            )}
           </button>
           <button
             type="button"
@@ -201,6 +206,9 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           supportsSpeech={agent.supportsSpeech}
           onAsk={agent.ask}
           error={agent.error}
+          inSession={agent.inSession}
+          secondsRemaining={agent.secondsRemaining}
+          onEndSession={agent.endSession}
         />
 
         {/*

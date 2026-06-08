@@ -1,93 +1,137 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDataChannel, useRoomContext } from "@livekit/components-react";
+import { useSpeechBroadcast } from "./useSpeechBroadcast.js";
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || "/api";
-
-/**
- * Wake phrases the agent listens for. Matched case-insensitively anywhere
- * in a finalized speech result; everything after the phrase is treated as
- * the question for NexMeet. Saying e.g. "hey hassan ..." matches none of
- * these, so the agent stays silent.
- *
- * We use "agent" as the primary wake word because the Web Speech API
- * transcribes it far more reliably than the brand name "NexMeet". The
- * nexmeet variants (and common misrecognitions like "next meet") are
- * kept as fallbacks for users who prefer to address the assistant by
- * name. Phrases are listed longest-first so multi-word matches win.
- */
-const WAKE_PHRASES = [
-  // Primary — "agent" is transcribed reliably by the Web Speech API.
-  "hey agent",
-  "hi agent",
-  "ok agent",
-  "okay agent",
-  "yo agent",
-  // Fallbacks — the brand name and its common misrecognitions.
-  "hey nexmeet",
-  "hi nexmeet",
-  "ok nexmeet",
-  "okay nexmeet",
-  "hey next meet",
-  "hey next-meet",
-  "hey nex meet",
-  // We deliberately exclude the bare words "agent" / "nexmeet" — they
-  // are too easy to trigger accidentally ("the real estate agent…").
-  // Always require an explicit prefix ("hey/hi/ok/okay/yo").
-];
 const DATA_TOPIC = "nexmeet";
+
+// Wake phrases — only used to OPEN a conversation. Once a session is
+// open, the local user can continue speaking without repeating the
+// wake word. Matched case-insensitively; longest/multi-word variants
+// first so they take precedence.
+const WAKE_PHRASES = [
+  "hey agent", "hi agent", "ok agent", "okay agent", "yo agent",
+  "hey nexmeet", "hi nexmeet", "ok nexmeet", "okay nexmeet",
+  "hey next meet", "hey next-meet", "hey nex meet",
+];
+
+// Phrases that explicitly END the conversation. The agent will not
+// answer these; the session simply closes.
+const EXIT_PHRASES = [
+  "thanks agent", "thank you agent", "bye agent", "goodbye agent",
+  "that's all agent", "thats all agent", "stop agent", "dismiss agent",
+];
+
+// How long after the last interaction we stay "in conversation" before
+// auto-closing. Reset on every new utterance the agent processes.
+const CONVERSATION_TIMEOUT_MS = 60_000;
+
+// Maximum number of conversation turns we keep in the rolling history
+// sent to Groq. Keeps the prompt small and fast.
+const HISTORY_LIMIT = 14;
+
+// How long before "now" we look for peer transcripts to enrich the
+// conversation context. Peer transcripts received within this window
+// before the user's current question are treated as recent context.
+const PEER_CONTEXT_LOOKBACK_MS = 25_000;
 
 const isBrowserSpeechSupported = () =>
   typeof window !== "undefined" &&
   Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
+function findWakePhrase(text) {
+  const lower = text.toLowerCase();
+  for (const phrase of WAKE_PHRASES) {
+    const idx = lower.indexOf(phrase);
+    if (idx !== -1) {
+      const tail = text
+        .slice(idx + phrase.length)
+        .replace(/^[\s,.!?:;—-]+/, "")
+        .trim();
+      return { phrase, tail };
+    }
+  }
+  return null;
+}
+
+function isExitPhrase(text) {
+  const lower = text.toLowerCase().trim();
+  return EXIT_PHRASES.some((p) => lower.includes(p));
+}
+
 /**
- * useNexMeetAgent
+ * useNexMeetAgent (v2)
  *
- * Powers the in-meeting NexMeet AI assistant.
+ * The in-meeting AI agent, redesigned to feel like a real participant:
  *
- *  • Listens to the local participant's microphone via the browser's
- *    Web Speech API when `listening` is true, and only ever triggers
- *    when a wake phrase is heard — addressing the assistant by name.
- *  • Sends the post-wake-phrase question to the backend `/ask`
- *    endpoint, which proxies to Groq.
- *  • Broadcasts the (question, answer) pair to every other participant
- *    over a LiveKit data-channel topic so the AI conversation stays
- *    in sync across the entire room.
- *  • Speaks the answer aloud locally via SpeechSynthesis so the asker
- *    naturally hears it; LiveKit then carries that audio to peers.
+ *  1. Wake-word opens a CONVERSATION SESSION lasting up to 60 s.
+ *  2. While the session is open, the local user keeps speaking and each
+ *     finalized utterance is treated as the next turn — no wake word
+ *     needed. The session auto-extends on every turn.
+ *  3. Saying "thanks agent" / "bye agent" / "stop agent" closes the
+ *     session immediately. So does an explicit click of "End".
+ *  4. Each call to Groq includes the rolling conversation history PLUS
+ *     recent transcripts from OTHER participants (received over the
+ *     LiveKit data channel via `useSpeechBroadcast`). This gives the
+ *     agent multi-party awareness so it can summarize, refer to who
+ *     said what, and engage with the whole room.
+ *  5. The system prompt asks the model to emit the literal token
+ *     "<silent>" when the latest user turn isn't addressed to it — that
+ *     way the agent stays quiet during normal conversation that isn't
+ *     directed at it.
  */
 export function useNexMeetAgent({ username, enabled }) {
   const room = useRoomContext();
+
+  // Conversation state — shared across all participants via the
+  // `nexmeet` data-channel topic.
   const [conversation, setConversation] = useState([]);
   const [thinking, setThinking]         = useState(false);
   const [partial, setPartial]           = useState("");
   const [listening, setListening]       = useState(false);
+  const [inSession, setInSession]       = useState(false);
+  const [sessionUntil, setSessionUntil] = useState(0); // ts (ms) when session auto-closes
   const [error, setError]               = useState(null);
-  const recognitionRef                  = useRef(null);
-  const wantListeningRef                = useRef(false);
-  const seenIdsRef                      = useRef(new Set());
+
+  const seenIdsRef     = useRef(new Set());
+  const peerTranscriptsRef = useRef([]); // [{ by, text, ts }]
+  const sessionTimerRef = useRef(null);
 
   const supportsSpeech = isBrowserSpeechSupported();
 
-  // Sync any incoming AI messages from peers
+  // Subscribe to AI conversation messages from peers
   const { message: incoming, send } = useDataChannel(DATA_TOPIC);
 
   useEffect(() => {
     if (!incoming) return;
     try {
       const text = new TextDecoder().decode(incoming.payload);
-      const entry = JSON.parse(text);
-      if (!entry || !entry.id || seenIdsRef.current.has(entry.id)) return;
-      seenIdsRef.current.add(entry.id);
-      setConversation((prev) => [...prev, entry]);
+      const data = JSON.parse(text);
+      if (!data) return;
+
+      // Two kinds of payloads share this topic:
+      //   - { kind: "transcript", by, text, ts }   — what someone said
+      //   - everything else: conversation entries (question / answer)
+      if (data.kind === "transcript") {
+        // Keep the last few minutes of peer transcripts in memory so
+        // the agent can include them as conversational context.
+        peerTranscriptsRef.current = [
+          ...peerTranscriptsRef.current,
+          { by: data.by, text: data.text, ts: data.ts || Date.now() },
+        ].slice(-50);
+        return;
+      }
+
+      if (data.id && !seenIdsRef.current.has(data.id)) {
+        seenIdsRef.current.add(data.id);
+        setConversation((prev) => [...prev, data]);
+      }
     } catch (e) {
-      console.warn("NexMeet: failed to parse incoming agent message", e);
+      console.warn("NexMeet: failed to parse incoming message", e);
     }
   }, [incoming]);
 
-  /**
-   * Append locally + broadcast over the data channel.
-   */
+  // Broadcast an AI conversation entry to every participant
   const broadcast = useCallback(
     (entry) => {
       if (seenIdsRef.current.has(entry.id)) return;
@@ -103,26 +147,81 @@ export function useNexMeetAgent({ username, enabled }) {
     [send]
   );
 
-  /**
-   * Stop any in-progress utterance — used when the user disables voice
-   * or leaves, so the assistant doesn't keep talking over the call.
-   */
-  const stopSpeaking = useCallback(() => {
+  const cancelSpeech = useCallback(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }, []);
 
+  // Open / extend the conversation session
+  const extendSession = useCallback(() => {
+    const until = Date.now() + CONVERSATION_TIMEOUT_MS;
+    setInSession(true);
+    setSessionUntil(until);
+
+    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+    sessionTimerRef.current = setTimeout(() => {
+      setInSession(false);
+      setSessionUntil(0);
+    }, CONVERSATION_TIMEOUT_MS);
+  }, []);
+
+  const endSession = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    setInSession(false);
+    setSessionUntil(0);
+    cancelSpeech();
+  }, [cancelSpeech]);
+
   /**
-   * Ask the agent a question. Returns nothing — the answer is delivered
-   * via the shared `conversation` state and the data channel.
+   * Send a user turn to NexMeet. Builds the message history from:
+   *   • prior NexMeet Q/A entries (chronological)
+   *   • recent peer transcripts within PEER_CONTEXT_LOOKBACK_MS
+   *   • the current question
    */
   const ask = useCallback(
-    async (rawQuestion) => {
+    async (rawQuestion, { fromVoice = false } = {}) => {
       const question = (rawQuestion || "").trim();
       if (!question) return;
 
-      const baseId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      // Build message history for the model:
+      //   1) prior Q / A pairs from the synced AI conversation
+      //   2) recent peer transcripts (as user turns)
+      //   3) the current question (as user turn, attributed)
+      const now = Date.now();
+
+      const aiTurns = conversation.map((m) => ({
+        role: m.type === "a" ? "assistant" : "user",
+        name: m.by,
+        content: m.text,
+        ts: m.ts || 0,
+      }));
+
+      const recentPeerTurns = peerTranscriptsRef.current
+        .filter((t) => now - t.ts < PEER_CONTEXT_LOOKBACK_MS && t.by !== username)
+        .map((t) => ({
+          role: "user",
+          name: t.by,
+          content: t.text,
+          ts: t.ts,
+        }));
+
+      const merged = [...aiTurns, ...recentPeerTurns]
+        .sort((a, b) => (a.ts || 0) - (b.ts || 0))
+        .slice(-HISTORY_LIMIT)
+        .map(({ ts, ...m }) => m);
+
+      const messagesForModel = [
+        ...merged,
+        { role: "user", name: username || "Someone", content: question },
+      ];
+
+      const baseId = `${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
       const qEntry = {
         id: `q-${baseId}`,
         type: "q",
@@ -139,7 +238,7 @@ export function useNexMeetAgent({ username, enabled }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            question,
+            messages: messagesForModel,
             askedBy: username,
             room: room?.name,
           }),
@@ -150,7 +249,17 @@ export function useNexMeetAgent({ username, enabled }) {
           throw new Error(data?.error || `Request failed (${res.status})`);
         }
 
-        const answer = (data.answer || "I'm not sure how to respond.").trim();
+        // Agent decided to stay quiet — drop the question silently? No,
+        // keep the user's question visible so they know it was heard,
+        // but don't render an empty AI bubble.
+        if (data.silent || data.answer == null) {
+          // Still extend session a bit — they're clearly trying to talk
+          // to NexMeet even if the model judged otherwise.
+          if (inSession) extendSession();
+          return;
+        }
+
+        const answer = String(data.answer).trim();
         const aEntry = {
           id: `a-${baseId}`,
           type: "a",
@@ -160,10 +269,13 @@ export function useNexMeetAgent({ username, enabled }) {
         };
         broadcast(aEntry);
 
-        // Speak the answer for the asker. Other participants will hear
-        // it through the asker's published audio track, and everyone
-        // also sees the text via the synced data channel.
-        if (typeof window !== "undefined" && window.speechSynthesis) {
+        // Speak the answer locally so the asker hears it; peers see the
+        // text via the data-channel sync regardless.
+        if (
+          fromVoice &&
+          typeof window !== "undefined" &&
+          window.speechSynthesis
+        ) {
           try {
             const utter = new SpeechSynthesisUtterance(answer);
             utter.rate = 1.05;
@@ -174,6 +286,8 @@ export function useNexMeetAgent({ username, enabled }) {
             /* ignore TTS failures */
           }
         }
+
+        extendSession();
       } catch (e) {
         const aEntry = {
           id: `a-${baseId}`,
@@ -188,109 +302,78 @@ export function useNexMeetAgent({ username, enabled }) {
         setThinking(false);
       }
     },
-    [broadcast, room?.name, username]
+    [broadcast, conversation, extendSession, inSession, room?.name, username]
   );
 
   /**
-   * Parse a finalized speech transcript and, if it contains a wake
-   * phrase followed by something, fire `ask` with the trailing text.
+   * Handle a finalized transcript from the local user's mic.
+   * Decides whether to:
+   *   • Open a new session (wake phrase)
+   *   • Continue the existing session (already in session)
+   *   • End the session (exit phrase)
+   *   • Ignore (background chatter, no wake phrase)
    */
-  const handleFinalTranscript = useCallback(
+  const handleLocalFinal = useCallback(
     (finalText) => {
       if (!finalText) return;
-      const lower = finalText.toLowerCase();
-      for (const phrase of WAKE_PHRASES) {
-        const idx = lower.indexOf(phrase);
-        if (idx === -1) continue;
-        const tail = finalText
-          .slice(idx + phrase.length)
-          .replace(/^[\s,.!?:;—-]+/, "")
-          .trim();
-        if (tail.length >= 2) {
-          ask(tail);
+
+      // Exit takes priority over everything else
+      if (inSession && isExitPhrase(finalText)) {
+        endSession();
+        return;
+      }
+
+      const wake = findWakePhrase(finalText);
+      if (wake) {
+        // Wake phrase fires regardless of session state. The trailing
+        // text (if any) is the first turn of the (possibly new) session.
+        extendSession();
+        if (wake.tail.length >= 2) {
+          ask(wake.tail, { fromVoice: true });
         }
         return;
       }
+
+      // No wake phrase — only continue if a session is already open.
+      if (inSession && finalText.length >= 2) {
+        ask(finalText, { fromVoice: true });
+      }
     },
-    [ask]
+    [ask, endSession, extendSession, inSession]
   );
 
-  /**
-   * Manage the SpeechRecognition lifecycle based on `enabled` (component
-   * mounted) and `listening` (user toggled it on).
-   */
+  // Wire up the per-client SpeechRecognition. This both broadcasts
+  // transcripts to peers and feeds finalized text back to us for
+  // wake / continue / exit handling.
+  useSpeechBroadcast({
+    enabled: enabled && listening && supportsSpeech,
+    localName: username,
+    onFinalTranscript: handleLocalFinal,
+    onInterim: setPartial,
+  });
+
+  // If the user disables listening, also close any active session
   useEffect(() => {
-    if (!enabled || !listening) {
-      wantListeningRef.current = false;
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch { /* noop */ }
-        recognitionRef.current = null;
-      }
-      setPartial("");
-      return;
-    }
-
-    if (!supportsSpeech) {
-      setError("Speech recognition isn't supported in this browser.");
-      setListening(false);
-      return;
-    }
-
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SR();
-    recognition.continuous     = true;
-    recognition.interimResults = true;
-    recognition.lang           = "en-US";
-
-    wantListeningRef.current = true;
-
-    recognition.onresult = (event) => {
-      let interim = "";
-      let finalText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalText += transcript + " ";
-        else interim += transcript;
-      }
-      setPartial(interim);
-      if (finalText.trim()) handleFinalTranscript(finalText.trim());
-    };
-
-    recognition.onerror = (e) => {
-      // "no-speech" and "aborted" are routine; surface only real issues.
-      if (e?.error && e.error !== "no-speech" && e.error !== "aborted") {
-        setError(`Voice recognition error: ${e.error}`);
-      }
-    };
-
-    recognition.onend = () => {
-      // Auto-restart while the user still wants to listen — Chrome will
-      // end the session after a short pause otherwise.
-      if (wantListeningRef.current && recognitionRef.current === recognition) {
-        try { recognition.start(); } catch { /* already starting */ }
-      }
-    };
-
-    try {
-      recognition.start();
-      recognitionRef.current = recognition;
-    } catch (e) {
-      console.warn("NexMeet: failed to start speech recognition", e);
-      setError("Couldn't start voice listening.");
-      setListening(false);
-    }
-
-    return () => {
-      wantListeningRef.current = false;
-      try { recognition.stop(); } catch { /* noop */ }
-      if (recognitionRef.current === recognition) {
-        recognitionRef.current = null;
-      }
-    };
-  }, [enabled, listening, supportsSpeech, handleFinalTranscript]);
+    if (!listening) endSession();
+  }, [listening, endSession]);
 
   // Cleanup speech synthesis on unmount
-  useEffect(() => stopSpeaking, [stopSpeaking]);
+  useEffect(() => () => cancelSpeech(), [cancelSpeech]);
+
+  // Manual / text-mode asks: always treated as direct address, so they
+  // also open or extend a conversation session.
+  const askDirect = useCallback(
+    (q) => {
+      extendSession();
+      return ask(q, { fromVoice: false });
+    },
+    [ask, extendSession]
+  );
+
+  const secondsRemaining = useMemo(() => {
+    if (!inSession || !sessionUntil) return 0;
+    return Math.max(0, Math.ceil((sessionUntil - Date.now()) / 1000));
+  }, [inSession, sessionUntil]);
 
   return {
     conversation,
@@ -298,9 +381,12 @@ export function useNexMeetAgent({ username, enabled }) {
     partial,
     listening,
     setListening,
-    ask,
+    inSession,
+    sessionUntil,
+    secondsRemaining,
+    endSession,
+    ask: askDirect,
     error,
     supportsSpeech,
-    stopSpeaking,
   };
 }

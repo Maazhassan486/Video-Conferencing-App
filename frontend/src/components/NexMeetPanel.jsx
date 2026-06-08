@@ -25,6 +25,9 @@ export default function NexMeetPanel({
   supportsSpeech,
   onAsk,
   error,
+  inSession,
+  secondsRemaining,
+  onEndSession,
 }) {
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
@@ -57,23 +60,49 @@ export default function NexMeetPanel({
             <span className={styles.titleMain}>NexMeet AI</span>
             <span className={styles.titleSub}>
               {thinking
-                ? "Thinking…"
+                ? "Thinking\u2026"
+                : inSession
+                ? `In conversation \u00B7 ${secondsRemaining}s`
                 : listening
                 ? "Listening for \u201CHey Agent\u201D"
                 : "Idle"}
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.close}
-          onClick={onClose}
-          aria-label="Close NexMeet panel"
-          tabIndex={open ? 0 : -1}
-        >
-          <XIcon size={16} />
-        </button>
+        <div className={styles.headerActions}>
+          {inSession && (
+            <button
+              type="button"
+              className={styles.endBtn}
+              onClick={onEndSession}
+              title="End the conversation"
+              tabIndex={open ? 0 : -1}
+            >
+              End
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label="Close NexMeet panel"
+            tabIndex={open ? 0 : -1}
+          >
+            <XIcon size={16} />
+          </button>
+        </div>
       </header>
+
+      {inSession && (
+        <div className={styles.sessionBar}>
+          <span className={styles.sessionDot} aria-hidden />
+          <span>
+            Conversation is open — speak freely without saying
+            &ldquo;hey agent&rdquo;. Say <strong>&ldquo;thanks agent&rdquo;</strong>{" "}
+            to end.
+          </span>
+        </div>
+      )}
 
       <div className={styles.controls}>
         <button
@@ -95,7 +124,8 @@ export default function NexMeetPanel({
           {listening && <span className={styles.pulse} aria-hidden />}
         </button>
         <span className={styles.hint}>
-          Say <strong>&ldquo;Hey Agent&rdquo;</strong> then your question.
+          Say <strong>&ldquo;Hey Agent&rdquo;</strong> to start a conversation.
+          The agent stays open for follow-ups.
         </span>
       </div>
 

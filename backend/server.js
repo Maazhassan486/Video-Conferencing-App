@@ -126,16 +126,37 @@ app.delete("/rooms/:roomName", async (req, res) => {
 });
 
 // ─── POST /ask ─────────────────────────────────────────────────────────────
-// In-meeting AI agent ("NexMeet"). Frontend calls this when a participant
-// explicitly addresses the assistant (e.g. by saying "Hey NexMeet, …" or
-// typing into the AI panel). We forward the question to Groq and return
-// a short, meeting-appropriate answer that the frontend can both display
-// in the AI side-panel and speak aloud via the browser's SpeechSynthesis.
+// Conversation endpoint for the in-meeting NexMeet AI agent.
+//
+// Body shape (preferred):
+//   {
+//     messages: [
+//       { role: "user" | "assistant", content: string, name?: string }, ...
+//     ],
+//     room?: string,
+//     askedBy?: string,
+//   }
+//
+// Legacy shape (still supported for backward compatibility with older
+// clients):  { question, askedBy, room }
+//
+// We prepend a system message that primes NexMeet to behave like a
+// meeting attendee — concise spoken-style answers, aware that multiple
+// people are in the conversation, only responding when addressed/invited.
 app.post("/ask", async (req, res) => {
-  const { question, askedBy, room } = req.body || {};
+  const body = req.body || {};
+  const room = body.room;
+  const askedBy = body.askedBy;
 
-  if (!question || typeof question !== "string" || !question.trim()) {
-    return res.status(400).json({ error: "question is required" });
+  let messages = Array.isArray(body.messages) ? body.messages : null;
+
+  // Legacy single-question fallback
+  if (!messages && body.question && typeof body.question === "string") {
+    messages = [{ role: "user", name: askedBy, content: body.question.trim() }];
+  }
+
+  if (!messages || messages.length === 0) {
+    return res.status(400).json({ error: "messages (or question) is required" });
   }
   if (!groq) {
     return res
@@ -143,35 +164,57 @@ app.post("/ask", async (req, res) => {
       .json({ error: "AI assistant is not configured (missing GROQ_API_KEY)" });
   }
 
+  // Normalize incoming messages: keep only known roles, trim, drop blanks,
+  // and prefix user content with the speaker's name so NexMeet knows who
+  // said what across multiple participants.
+  const cleaned = messages
+    .filter((m) => m && typeof m.content === "string" && m.content.trim())
+    .map((m) => {
+      const role = m.role === "assistant" ? "assistant" : "user";
+      let content = m.content.trim();
+      if (role === "user" && m.name && !content.startsWith(`${m.name}:`)) {
+        content = `${m.name}: ${content}`;
+      }
+      return { role, content };
+    })
+    // Hard cap to keep the prompt reasonable in size
+    .slice(-24);
+
+  const systemPrompt =
+    "You are NexMeet, an AI assistant who participates in a live video meeting alongside the human attendees. " +
+    `The meeting room is "${room || "(unknown)"}".\n\n` +
+    "BEHAVIOR\n" +
+    "• You are in 'conversation mode' — recent turns from multiple participants are provided as context. " +
+    "Each user message is prefixed with the speaker's display name and a colon (e.g. 'Alice: ...'). " +
+    "Use those names to follow who said what; refer to people by first name when natural.\n" +
+    "• You only speak when explicitly addressed (e.g. someone says 'agent', 'NexMeet', or directly invites your opinion). " +
+    "If the latest user turn isn't addressed to you, output exactly the single token: <silent>\n" +
+    "• Otherwise reply directly. Keep responses concise — 1 to 3 sentences, ~60 words max — because your answer will be read aloud.\n" +
+    "• Plain conversational text only. No markdown, no bullet lists, no headings, no code fences.\n" +
+    "• Be warm and natural, like a sharp colleague on the call. Don't preface with 'Sure!' or 'Great question!'.\n" +
+    "• If asked to summarize or recap, use the prior turns in this conversation.\n" +
+    "• If you don't know something or it requires real-time data, say so briefly.\n" +
+    `${askedBy ? `\nThe most recent person who explicitly addressed you is ${askedBy}.\n` : ""}`;
+
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
       temperature: 0.6,
       max_tokens: 220,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are NexMeet, a friendly AI assistant present inside a live video meeting. " +
-            "Participants summon you by saying 'Hey Agent' (or 'Hey NexMeet') before their question. " +
-            "Your answers are spoken aloud and shown in a small in-call side panel, so:\n" +
-            "• Keep responses concise — 1 to 3 sentences, never more than ~60 words.\n" +
-            "• Plain text only. No markdown, no lists, no headings, no code fences.\n" +
-            "• Be direct, warm, and natural — like a helpful colleague on the call.\n" +
-            "• If you don't know something or it requires real-time data you don't have, say so briefly.",
-        },
-        {
-          role: "user",
-          content: `${askedBy ? `[${askedBy} in room ${room || "unknown"} asks] ` : ""}${question.trim()}`,
-        },
-      ],
+      messages: [{ role: "system", content: systemPrompt }, ...cleaned],
     });
 
-    const answer =
+    const raw =
       completion.choices?.[0]?.message?.content?.trim() ||
       "Sorry, I couldn't come up with a response.";
 
-    return res.json({ answer });
+    // Agent decided not to speak — signal that to the frontend so it
+    // doesn't render an empty bubble or speak silence aloud.
+    if (raw === "<silent>" || /^<silent>\.?$/.test(raw)) {
+      return res.json({ answer: null, silent: true });
+    }
+
+    return res.json({ answer: raw });
   } catch (err) {
     console.error("Groq /ask error:", err);
     return res
