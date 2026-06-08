@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GridLayout,
   ParticipantTile,
@@ -12,15 +12,32 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import styles from "./VideoConferenceUI.module.css";
+import {
+  HexagonIcon,
+  InfoIcon,
+  ChatIcon,
+  UsersIcon,
+  PhoneOffIcon,
+  XIcon,
+  CopyIcon,
+  CheckIcon,
+} from "./Icons.jsx";
 
 export default function VideoConferenceUI({ roomName, username, onLeave }) {
-  const [chatOpen, setChatOpen]       = useState(false);
-  const [infoOpen, setInfoOpen]       = useState(false);
-  const participants                  = useParticipants();
-  const { localParticipant }          = useLocalParticipant();
-  const room                          = useRoomContext();
+  const [chatOpen, setChatOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [copied, setCopied]     = useState(false);
+  const [clock, setClock]       = useState(() => formatTime(new Date()));
 
-  // All camera + screen share tracks
+  const participants         = useParticipants();
+  const { localParticipant } = useLocalParticipant();
+  const room                 = useRoomContext();
+
+  useEffect(() => {
+    const id = setInterval(() => setClock(formatTime(new Date())), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const tracks = useTracks(
     [
       { source: Track.Source.Camera,      withPlaceholder: true },
@@ -35,60 +52,74 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
   }
 
   function copyInviteLink() {
-    // Strip `user` so invitees don't inherit the inviter's name/identity.
     const url = new URL(window.location.href);
     url.searchParams.delete("user");
     navigator.clipboard.writeText(url.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   }
-
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className={styles.wrapper}>
-      {/* Audio renderer (invisible) */}
       <RoomAudioRenderer />
 
-      {/* Top bar */}
+      {/* ── Top Bar ─────────────────────────────────────── */}
       <div className={styles.topBar}>
         <div className={styles.topLeft}>
-          <span className={styles.logoIcon}>⬡</span>
+          <span className={styles.logoIcon}><HexagonIcon size={20} /></span>
           <span className={styles.logoText}>NexMeet</span>
+          <span className={styles.divider} aria-hidden />
+          <span className={styles.clock}>{clock}</span>
         </div>
 
         <div className={styles.topCenter}>
-          <span className={styles.roomChip}>{roomName}</span>
+          <span className={styles.roomChip} title={roomName}>{roomName}</span>
         </div>
 
         <div className={styles.topRight}>
-          <span className={styles.clock}>{timeStr}</span>
-          <span className={styles.participantCount}>
-            👥 {participants.length}
+          <span className={styles.participantCount} title="Participants">
+            <UsersIcon size={14} />
+            <span>{participants.length}</span>
           </span>
           <button
+            type="button"
             className={`${styles.iconBtn} ${infoOpen ? styles.iconBtnActive : ""}`}
-            onClick={() => setInfoOpen(v => !v)}
+            onClick={() => { setInfoOpen(v => !v); setChatOpen(false); }}
             title="Meeting info"
+            aria-label="Meeting info"
           >
-            ℹ️
+            <InfoIcon size={18} />
           </button>
           <button
+            type="button"
             className={`${styles.iconBtn} ${chatOpen ? styles.iconBtnActive : ""}`}
-            onClick={() => setChatOpen(v => !v)}
+            onClick={() => { setChatOpen(v => !v); setInfoOpen(false); }}
             title="Toggle chat"
+            aria-label="Toggle chat"
           >
-            💬
+            <ChatIcon size={18} />
           </button>
         </div>
       </div>
 
-      {/* Info drawer */}
+      {/* ── Info Drawer ─────────────────────────────────── */}
       {infoOpen && (
         <div className={styles.infoDrawer}>
-          <h3 className={styles.infoTitle}>Meeting details</h3>
+          <div className={styles.infoHeader}>
+            <h3 className={styles.infoTitle}>Meeting details</h3>
+            <button
+              type="button"
+              className={styles.closeInfo}
+              onClick={() => setInfoOpen(false)}
+              aria-label="Close"
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Room</span>
-            <span className={styles.infoValue}>{roomName}</span>
+            <span className={styles.infoValueMono}>{roomName}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Your name</span>
@@ -98,18 +129,20 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
             <span className={styles.infoLabel}>Participants</span>
             <span className={styles.infoValue}>{participants.length}</span>
           </div>
+
           <button
-            className={styles.copyInvite}
+            type="button"
+            className={`${styles.copyInvite} ${copied ? styles.copyInviteOk : ""}`}
             onClick={copyInviteLink}
           >
-            📋 Copy invite link
+            {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+            <span>{copied ? "Link copied" : "Copy invite link"}</span>
           </button>
         </div>
       )}
 
-      {/* Main area */}
+      {/* ── Body ────────────────────────────────────────── */}
       <div className={styles.body}>
-        {/* Video grid */}
         <div className={styles.gridArea}>
           {tracks.length > 0 ? (
             <GridLayout tracks={tracks} className={styles.grid}>
@@ -117,42 +150,72 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
             </GridLayout>
           ) : (
             <div className={styles.emptyRoom}>
-              <div className={styles.emptyIcon}>📹</div>
+              <div className={styles.emptyIconWrap}>
+                <UsersIcon size={32} />
+              </div>
               <h3>Waiting for others to join…</h3>
-              <p>Share the room code to invite participants.</p>
+              <p>Share the meeting code or invite link to add people.</p>
+              <button
+                type="button"
+                className={`${styles.emptyCopyBtn} ${copied ? styles.emptyCopyBtnOk : ""}`}
+                onClick={copyInviteLink}
+              >
+                {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                <span>{copied ? "Link copied" : "Copy invite link"}</span>
+              </button>
               <code className={styles.emptyCode}>{roomName}</code>
             </div>
           )}
         </div>
 
-        {/* Chat sidebar */}
         {chatOpen && (
           <div className={styles.chatSidebar}>
             <div className={styles.chatHeader}>
               <span>In-call messages</span>
-              <button className={styles.closeChat} onClick={() => setChatOpen(false)}>✕</button>
+              <button
+                type="button"
+                className={styles.closeChat}
+                onClick={() => setChatOpen(false)}
+                aria-label="Close chat"
+              >
+                <XIcon size={16} />
+              </button>
             </div>
             <Chat className={styles.chat} />
           </div>
         )}
       </div>
 
-      {/* Bottom control bar */}
+      {/* ── Bottom Control Pill ─────────────────────────── */}
       <div className={styles.bottomBar}>
-        <ControlBar
-          controls={{
-            microphone: true,
-            camera: true,
-            screenShare: true,
-            chat: false,   // We handle chat ourselves
-            leave: false,  // We handle leave ourselves
-          }}
-          className={styles.controls}
-        />
-        <button className={styles.leaveBtn} onClick={handleLeave}>
-          Leave call
-        </button>
+        <div className={styles.controlsPill}>
+          <ControlBar
+            controls={{
+              microphone: true,
+              camera: true,
+              screenShare: true,
+              chat: false,
+              leave: false,
+            }}
+            variation="minimal"
+            className={styles.controls}
+          />
+          <span className={styles.controlsDivider} aria-hidden />
+          <button
+            type="button"
+            className={styles.leaveBtn}
+            onClick={handleLeave}
+            title="Leave call"
+          >
+            <PhoneOffIcon size={18} />
+            <span>Leave</span>
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+function formatTime(d) {
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

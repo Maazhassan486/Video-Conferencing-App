@@ -1,15 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import styles from "./Lobby.module.css";
+import {
+  MicIcon,
+  MicOffIcon,
+  CamIcon,
+  CamOffIcon,
+  HexagonIcon,
+  ArrowRightIcon,
+  LinkIcon,
+  CheckIcon,
+} from "./Icons.jsx";
 
 export default function Lobby({ roomName, initialName, onJoin, loading }) {
-  const [name, setName]           = useState(initialName || "");
-  const [camOn, setCamOn]         = useState(true);
-  const [micOn, setMicOn]         = useState(true);
-  const [error, setError]         = useState("");
-  const [stream, setStream]       = useState(null);
+  const [name, setName]     = useState(initialName || "");
+  const [camOn, setCamOn]   = useState(true);
+  const [micOn, setMicOn]   = useState(true);
+  const [error, setError]   = useState("");
+  const [stream, setStream] = useState(null);
+  const [copied, setCopied] = useState(false);
   const videoRef = useRef(null);
 
-  // Get camera preview
   useEffect(() => {
     let localStream;
     if (camOn) {
@@ -41,27 +51,27 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
   }
 
   function copyInviteLink() {
-    // Strip any `user` query param so invitees don't inherit the inviter's name
+    // Strip the `user` query param so invitees don't inherit the inviter's name
     // (which would otherwise cause an identity-collision style kick).
     const url = new URL(window.location.href);
     url.searchParams.delete("user");
     navigator.clipboard.writeText(url.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   }
 
   return (
     <div className={styles.page}>
       <div className={styles.mesh} aria-hidden />
 
-      {/* Logo */}
       <header className={styles.header}>
         <a href="/" className={styles.logo}>
-          <span className={styles.logoIcon}>⬡</span>
+          <span className={styles.logoIcon}><HexagonIcon size={22} /></span>
           <span className={styles.logoText}>NexMeet</span>
         </a>
       </header>
 
       <main className={styles.main}>
-        {/* Preview */}
         <div className={styles.previewCol}>
           <div className={styles.videoBox}>
             {camOn ? (
@@ -74,43 +84,58 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
               />
             ) : (
               <div className={styles.videoOff}>
-                <span className={styles.avatarBig}>{name ? name[0].toUpperCase() : "?"}</span>
+                <div className={styles.avatarBig}>
+                  {name ? name[0].toUpperCase() : "?"}
+                </div>
                 <p>Camera is off</p>
               </div>
             )}
 
-            {/* Toggle buttons */}
+            {!micOn && (
+              <div className={styles.mutePill}>
+                <MicOffIcon size={14} />
+                <span>Muted</span>
+              </div>
+            )}
+
             <div className={styles.mediaControls}>
               <button
+                type="button"
                 className={`${styles.mediaBtn} ${!micOn ? styles.mediaBtnOff : ""}`}
                 onClick={() => setMicOn(v => !v)}
-                title={micOn ? "Mute mic" : "Unmute mic"}
+                title={micOn ? "Turn off microphone" : "Turn on microphone"}
+                aria-label={micOn ? "Turn off microphone" : "Turn on microphone"}
               >
-                {micOn ? "🎙️" : "🔇"}
+                {micOn ? <MicIcon size={20} /> : <MicOffIcon size={20} />}
               </button>
               <button
+                type="button"
                 className={`${styles.mediaBtn} ${!camOn ? styles.mediaBtnOff : ""}`}
                 onClick={() => setCamOn(v => !v)}
                 title={camOn ? "Turn off camera" : "Turn on camera"}
+                aria-label={camOn ? "Turn off camera" : "Turn on camera"}
               >
-                {camOn ? "📷" : "📵"}
+                {camOn ? <CamIcon size={20} /> : <CamOffIcon size={20} />}
               </button>
             </div>
           </div>
 
           <div className={styles.roomInfo}>
-            <span className={styles.roomLabel}>Room</span>
-            <span className={styles.roomName}>{roomName}</span>
+            <div className={styles.roomInfoText}>
+              <span className={styles.roomLabel}>Meeting code</span>
+              <span className={styles.roomName}>{roomName}</span>
+            </div>
             <button
-              className={styles.copyLink}
+              type="button"
+              className={`${styles.copyLink} ${copied ? styles.copyLinkOk : ""}`}
               onClick={copyInviteLink}
             >
-              Copy invite link
+              {copied ? <CheckIcon size={14} /> : <LinkIcon size={14} />}
+              <span>{copied ? "Copied!" : "Copy link"}</span>
             </button>
           </div>
         </div>
 
-        {/* Join form */}
         <div className={styles.formCol}>
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Ready to join?</h2>
@@ -133,11 +158,15 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
 
               <div className={styles.prefsRow}>
                 <div className={`${styles.pref} ${!micOn ? styles.prefOff : ""}`}>
-                  <span>{micOn ? "🎙️" : "🔇"}</span>
+                  <span className={styles.prefIcon}>
+                    {micOn ? <MicIcon size={16} /> : <MicOffIcon size={16} />}
+                  </span>
                   <span>{micOn ? "Mic on" : "Mic off"}</span>
                 </div>
                 <div className={`${styles.pref} ${!camOn ? styles.prefOff : ""}`}>
-                  <span>{camOn ? "📷" : "📵"}</span>
+                  <span className={styles.prefIcon}>
+                    {camOn ? <CamIcon size={16} /> : <CamOffIcon size={16} />}
+                  </span>
                   <span>{camOn ? "Camera on" : "Camera off"}</span>
                 </div>
               </div>
@@ -148,7 +177,10 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
                 {loading ? (
                   <span className={styles.spinner} />
                 ) : (
-                  "Join meeting →"
+                  <>
+                    <span>Join meeting</span>
+                    <ArrowRightIcon size={18} />
+                  </>
                 )}
               </button>
             </form>

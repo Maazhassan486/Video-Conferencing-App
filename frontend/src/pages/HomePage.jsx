@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./HomePage.module.css";
+import {
+  HexagonIcon,
+  ArrowRightIcon,
+  ShieldIcon,
+  CamIcon,
+  MonitorIcon,
+  ChatIcon,
+  CopyIcon,
+  CheckIcon,
+} from "../components/Icons.jsx";
 
 function generateRoomId() {
   const words = [
@@ -19,6 +29,13 @@ export default function HomePage() {
   const [roomInput, setRoomInput] = useState("");
   const [generatedRoom] = useState(generateRoomId);
   const [error, setError]       = useState("");
+  const [copied, setCopied]     = useState(false);
+
+  function copyRoom() {
+    navigator.clipboard.writeText(generatedRoom);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   function handleNew(e) {
     e.preventDefault();
@@ -43,7 +60,7 @@ export default function HomePage() {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logo}>
-          <span className={styles.logoIcon}>⬡</span>
+          <span className={styles.logoIcon}><HexagonIcon size={24} /></span>
           <span className={styles.logoText}>NexMeet</span>
         </div>
       </header>
@@ -103,11 +120,12 @@ export default function HomePage() {
                   <span className={styles.roomCode}>{generatedRoom}</span>
                   <button
                     type="button"
-                    className={styles.copyBtn}
-                    onClick={() => navigator.clipboard.writeText(generatedRoom)}
+                    className={`${styles.copyBtn} ${copied ? styles.copyBtnOk : ""}`}
+                    onClick={copyRoom}
                     title="Copy room ID"
                   >
-                    Copy
+                    {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+                    <span>{copied ? "Copied" : "Copy"}</span>
                   </button>
                 </div>
               </div>
@@ -126,7 +144,8 @@ export default function HomePage() {
             {error && <p className={styles.error}>{error}</p>}
 
             <button type="submit" className={styles.btn}>
-              {tab === "new" ? "Start meeting →" : "Join now →"}
+              <span>{tab === "new" ? "Start meeting" : "Join now"}</span>
+              <ArrowRightIcon size={18} />
             </button>
           </form>
         </div>
@@ -134,10 +153,10 @@ export default function HomePage() {
         {/* Features row */}
         <div className={styles.features}>
           {[
-            { icon: "🔐", label: "End-to-end encrypted" },
-            { icon: "📺", label: "HD video & audio" },
-            { icon: "🖥️", label: "Screen sharing" },
-            { icon: "💬", label: "In-meeting chat" },
+            { icon: <ShieldIcon size={16} />,  label: "Secure WebRTC" },
+            { icon: <CamIcon size={16} />,     label: "HD video & audio" },
+            { icon: <MonitorIcon size={16} />, label: "Screen sharing" },
+            { icon: <ChatIcon size={16} />,    label: "In-meeting chat" },
           ].map(f => (
             <div className={styles.feat} key={f.label}>
               <span className={styles.featIcon}>{f.icon}</span>

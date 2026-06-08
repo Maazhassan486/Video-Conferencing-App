@@ -18,97 +18,127 @@
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 20;
+  gap: 16px;
 }
 
 .topLeft {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.logoIcon { font-size: 20px; color: var(--accent); }
+.logoIcon {
+  display: inline-flex;
+  color: var(--accent);
+}
 
 .logoText {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.3px;
   color: var(--text);
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+
+.clock {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
 }
 
 .topCenter {
   display: flex;
   align-items: center;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
 }
 
 .roomChip {
-  padding: 5px 14px;
+  padding: 7px 16px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
-  font-family: "Courier New", monospace;
-  font-size: 13px;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--accent-2);
+  letter-spacing: 0.3px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topRight {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-}
-
-.clock {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-2);
-  font-family: var(--font-display);
+  gap: 10px;
 }
 
 .participantCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-2);
-  padding: 4px 10px;
+  padding: 7px 12px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
+  font-variant-numeric: tabular-nums;
 }
 
 .iconBtn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--bg-3);
   color: var(--text-2);
-  font-size: 16px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.iconBtn:hover { background: var(--surface); border-color: var(--border-2); }
+.iconBtn:hover {
+  background: var(--surface);
+  border-color: var(--border-2);
+  color: var(--text);
+}
 .iconBtnActive {
   background: rgba(59,130,246,0.15);
-  border-color: rgba(59,130,246,0.4);
+  border-color: rgba(59,130,246,0.45);
+  color: var(--accent-2);
 }
 
 /* ── Info Drawer ──────────────────────────────────────── */
 .infoDrawer {
   position: absolute;
-  top: 68px;
+  top: 72px;
   right: 20px;
   z-index: 30;
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 20px;
-  width: 280px;
+  border-radius: 16px;
+  padding: 18px;
+  width: 300px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-  animation: slideDown 0.2s ease;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+  animation: slideDown 0.18s ease;
 }
 
 @keyframes slideDown {
@@ -116,39 +146,91 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.infoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
 .infoTitle {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
+  letter-spacing: -0.2px;
 }
+
+.closeInfo {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  transition: color 0.15s, background 0.15s;
+}
+.closeInfo:hover { color: var(--text); background: var(--bg-3); }
 
 .infoRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
-.infoLabel { font-size: 13px; color: var(--text-3); }
-.infoValue { font-size: 13px; color: var(--text); font-weight: 500; }
+.infoLabel {
+  font-size: 12.5px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.infoValueMono {
+  composes: infoValue;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  color: var(--accent-2);
+  font-size: 12.5px;
+}
 
 .copyInvite {
-  margin-top: 4px;
+  margin-top: 6px;
   width: 100%;
-  padding: 9px;
+  padding: 10px;
   background: rgba(59,130,246,0.1);
-  border: 1px solid rgba(59,130,246,0.2);
+  border: 1px solid rgba(59,130,246,0.22);
   border-radius: var(--r-md);
   color: var(--accent-2);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .copyInvite:hover { background: rgba(59,130,246,0.2); }
+.copyInviteOk {
+  background: rgba(34,197,94,0.12) !important;
+  border-color: rgba(34,197,94,0.3) !important;
+  color: var(--green) !important;
+}
 
 /* ── Body ────────────────────────────────────────────── */
 .body {
@@ -156,12 +238,13 @@
   display: flex;
   overflow: hidden;
   min-height: 0;
+  padding-bottom: 96px; /* leave room for floating control pill */
 }
 
 .gridArea {
   flex: 1;
   overflow: hidden;
-  padding: 12px;
+  padding: 16px 16px 0;
   display: flex;
   flex-direction: column;
 }
@@ -173,9 +256,10 @@
 
 /* Override LiveKit grid tiles */
 .tile {
-  border-radius: var(--r-lg) !important;
+  border-radius: 14px !important;
   overflow: hidden;
   border: 1px solid var(--border) !important;
+  background: var(--bg-3) !important;
 }
 
 /* ── Empty state ──────────────────────────────────────── */
@@ -185,49 +269,95 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   color: var(--text-2);
   text-align: center;
+  padding: 40px 20px;
 }
 
-.emptyIcon { font-size: 48px; }
+.emptyIconWrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(59,130,246,0.15) 0%, transparent 70%),
+    var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--accent-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
 
 .emptyRoom h3 {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.3px;
 }
 
-.emptyRoom p { font-size: 14px; color: var(--text-2); }
+.emptyRoom p {
+  font-size: 14px;
+  color: var(--text-2);
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.emptyCopyBtn {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--r-full);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+}
+.emptyCopyBtn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+.emptyCopyBtnOk {
+  background: var(--green) !important;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.35) !important;
+}
 
 .emptyCode {
-  margin-top: 4px;
-  padding: 8px 20px;
+  margin-top: 6px;
+  padding: 8px 18px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
-  font-family: "Courier New", monospace;
-  font-size: 15px;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 14px;
   font-weight: 600;
   color: var(--accent-2);
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
 
 /* ── Chat Sidebar ────────────────────────────────────── */
 .chatSidebar {
-  width: 320px;
+  width: 340px;
   flex-shrink: 0;
   background: var(--bg-2);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideIn 0.2s ease;
+  animation: slideIn 0.18s ease;
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
+  from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0); opacity: 1; }
 }
 
@@ -235,12 +365,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  letter-spacing: -0.2px;
   flex-shrink: 0;
 }
 
@@ -248,61 +379,95 @@
   background: none;
   border: none;
   color: var(--text-3);
-  font-size: 16px;
   cursor: pointer;
   width: 28px;
   height: 28px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--r-sm);
-  transition: color 0.2s, background 0.2s;
+  transition: color 0.15s, background 0.15s;
 }
 .closeChat:hover { color: var(--text); background: var(--bg-3); }
 
-.chat {
-  flex: 1;
-  overflow: hidden;
-}
+.chat { flex: 1; overflow: hidden; }
 
-/* ── Bottom Bar ──────────────────────────────────────── */
+/* ── Bottom Control Pill ─────────────────────────────── */
 .bottomBar {
-  height: 80px;
-  background: var(--bg-2);
-  border-top: 1px solid var(--border);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 0 24px;
-  flex-shrink: 0;
-  z-index: 20;
-  position: relative;
+  pointer-events: none;
+  z-index: 25;
 }
 
-/* Override LiveKit control bar styles */
+.controlsPill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(13, 17, 23, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+
 .controls {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
+  margin: 0 !important;
+}
+
+.controlsDivider {
+  width: 1px;
+  height: 26px;
+  background: var(--border);
+  margin: 0 4px;
 }
 
 .leaveBtn {
-  padding: 10px 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
   background: var(--red);
   border: none;
   border-radius: var(--r-full);
   color: #fff;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
-  position: absolute;
-  right: 24px;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.45);
+  letter-spacing: 0.1px;
 }
 .leaveBtn:hover {
   background: #dc2626;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239,68,68,0.55);
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 720px) {
+  .topCenter { display: none; }
+  .topBar { padding: 0 14px; gap: 8px; }
+  .topRight { gap: 6px; }
+  .participantCount { padding: 6px 10px; }
+  .infoDrawer { right: 12px; left: 12px; width: auto; }
+  .chatSidebar { width: 100%; position: absolute; inset: 60px 0 96px 0; }
+  .leaveBtn span { display: none; }
+  .leaveBtn { padding: 10px 12px; }
+  .gridArea { padding: 10px 10px 0; }
+  .body { padding-bottom: 92px; }
 }

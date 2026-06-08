@@ -49,7 +49,10 @@ html, body, #root {
 ::-webkit-scrollbar-track { background: var(--bg-2); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 
-/* LiveKit component overrides */
+/* ── LiveKit component overrides ─────────────────────────
+ *  We dress LiveKit's built-in controls/tiles/chat to match
+ *  the rest of the dark, Meet-style UI.
+ */
 [data-lk-theme] {
   --lk-bg: var(--bg-2);
   --lk-bg2: var(--bg-3);
@@ -62,6 +65,146 @@ html, body, #root {
   height: 100%;
   font-family: var(--font-body) !important;
 }
+
+/* ControlBar buttons — pill toggles inside our floating bar */
+[data-lk-theme] .lk-control-bar {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  gap: 6px !important;
+}
+
+[data-lk-theme] .lk-button,
+[data-lk-theme] .lk-button-group > button {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 9999px !important;
+  background: var(--bg-3) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  font-family: var(--font-body) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+
+[data-lk-theme] .lk-button:hover,
+[data-lk-theme] .lk-button-group > button:hover {
+  background: var(--surface) !important;
+  border-color: var(--border-2) !important;
+  transform: translateY(-1px);
+}
+
+/* Muted/off state — red */
+[data-lk-theme] .lk-button[aria-pressed="false"],
+[data-lk-theme] .lk-button[data-lk-source][data-lk-enabled="false"],
+[data-lk-theme] .lk-button.lk-button-muted {
+  background: rgba(239,68,68,0.18) !important;
+  border-color: rgba(239,68,68,0.4) !important;
+  color: #fca5a5 !important;
+}
+
+/* Device-menu chevron buttons inside button-groups */
+[data-lk-theme] .lk-button-group > .lk-button-menu,
+[data-lk-theme] .lk-button-group-menu > button {
+  min-width: 34px;
+  padding: 0 8px;
+}
+
+/* Participant tile label */
+[data-lk-theme] .lk-participant-tile {
+  border-radius: 14px;
+  overflow: hidden;
+}
+[data-lk-theme] .lk-participant-metadata {
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent) !important;
+  padding: 24px 12px 10px !important;
+}
+[data-lk-theme] .lk-participant-name {
+  background: rgba(0,0,0,0.55) !important;
+  color: #fff !important;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+[data-lk-theme] .lk-participant-metadata-item {
+  background: rgba(0,0,0,0.55) !important;
+  border-radius: 9999px !important;
+  padding: 4px 8px !important;
+  color: #fff !important;
+}
+
+/* Connection-quality / speaking indicators */
+[data-lk-theme] .lk-speaking-indicator {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: -2px;
+  border-radius: 14px !important;
+}
+
+/* Chat panel */
+[data-lk-theme] .lk-chat {
+  background: var(--bg-2) !important;
+  border: none !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+[data-lk-theme] .lk-chat-messages {
+  flex: 1;
+  padding: 14px !important;
+}
+[data-lk-theme] .lk-chat-entry {
+  background: var(--bg-3) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 8px 12px !important;
+  margin-bottom: 8px !important;
+}
+[data-lk-theme] .lk-message-body { color: var(--text) !important; font-size: 13.5px !important; }
+[data-lk-theme] .lk-meta-data, [data-lk-theme] .lk-message-meta {
+  color: var(--text-3) !important;
+  font-size: 11.5px !important;
+}
+[data-lk-theme] .lk-chat-form {
+  padding: 12px !important;
+  border-top: 1px solid var(--border) !important;
+  background: var(--bg-2) !important;
+  display: flex;
+  gap: 8px;
+}
+[data-lk-theme] .lk-chat-form-input {
+  background: var(--bg-3) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 9999px !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  font-family: var(--font-body) !important;
+  font-size: 13.5px !important;
+  outline: none;
+  flex: 1;
+}
+[data-lk-theme] .lk-chat-form-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+[data-lk-theme] .lk-chat-form-button {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 0 16px !important;
+  height: 40px;
+  font-weight: 600 !important;
+}
+[data-lk-theme] .lk-chat-form-button:hover { background: #2563eb !important; }
 
 /* Animate in */
 @keyframes fadeUp {
