@@ -34,6 +34,13 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
     onLeave();
   }
 
+  function copyInviteLink() {
+    // Strip `user` so invitees don't inherit the inviter's name/identity.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("user");
+    navigator.clipboard.writeText(url.toString());
+  }
+
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -93,7 +100,7 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           </div>
           <button
             className={styles.copyInvite}
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            onClick={copyInviteLink}
           >
             📋 Copy invite link
           </button>

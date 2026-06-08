@@ -17,17 +17,32 @@ export default function MeetingPage() {
   const [username, setUsername] = useState(nameFromUrl);
   const [joined, setJoined]     = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [mediaPrefs, setMediaPrefs] = useState({ camOn: true, micOn: true });
 
   // If name came from URL, auto-fetch token so lobby can show preview
   useEffect(() => {
     if (nameFromUrl) setUsername(nameFromUrl);
   }, [nameFromUrl]);
 
-  async function handleJoin(name) {
+  // Drop the `user` query param from the address bar so anyone who copies
+  // the URL directly doesn't inherit the inviter's name (which previously
+  // caused the "joiner kicks the host" identity collision).
+  useEffect(() => {
+    if (searchParams.has("user")) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("user");
+      const qs = params.toString();
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams]);
+
+  async function handleJoin(name, prefs = { camOn: true, micOn: true }) {
     setConnecting(true);
     try {
       await fetchToken(roomName, name);
       setUsername(name);
+      setMediaPrefs(prefs);
       setJoined(true);
     } catch {
       setConnecting(false);
@@ -70,8 +85,8 @@ export default function MeetingPage() {
         serverUrl={serverUrl}
         token={token}
         connect={true}
-        video={true}
-        audio={true}
+        video={mediaPrefs.camOn}
+        audio={mediaPrefs.micOn}
         onDisconnected={handleDisconnect}
         style={{ height: "100vh" }}
       >

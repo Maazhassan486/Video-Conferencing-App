@@ -44,8 +44,16 @@ app.get("/token", async (req, res) => {
   }
 
   try {
+    // LiveKit requires `identity` to be unique per participant in a room.
+    // If two clients connect with the same identity, the newer connection
+    // forcibly disconnects the older one. We therefore derive a unique
+    // identity (username + short random suffix) while keeping `name` as
+    // the human-readable display name shown in the UI.
+    const suffix = Math.random().toString(36).slice(2, 10);
+    const identity = `${username}__${suffix}`;
+
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: username,
+      identity,
       name: username,
       ttl: "6h",
     });

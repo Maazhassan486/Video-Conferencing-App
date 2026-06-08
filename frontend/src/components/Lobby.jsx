@@ -37,7 +37,15 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
     e.preventDefault();
     if (!name.trim()) return setError("Please enter your name.");
     setError("");
-    onJoin(name.trim());
+    onJoin(name.trim(), { camOn, micOn });
+  }
+
+  function copyInviteLink() {
+    // Strip any `user` query param so invitees don't inherit the inviter's name
+    // (which would otherwise cause an identity-collision style kick).
+    const url = new URL(window.location.href);
+    url.searchParams.delete("user");
+    navigator.clipboard.writeText(url.toString());
   }
 
   return (
@@ -95,7 +103,7 @@ export default function Lobby({ roomName, initialName, onJoin, loading }) {
             <span className={styles.roomName}>{roomName}</span>
             <button
               className={styles.copyLink}
-              onClick={() => navigator.clipboard.writeText(window.location.href)}
+              onClick={copyInviteLink}
             >
               Copy invite link
             </button>
