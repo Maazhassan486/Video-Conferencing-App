@@ -6,7 +6,9 @@ import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "https://video-conferencing-app-two-nu.vercel.app/"
+}));
 app.use(express.json());
 
 const {
