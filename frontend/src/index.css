@@ -1,0 +1,82 @@
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Colors */
+  --bg:       #080b10;
+  --bg-2:     #0d1117;
+  --bg-3:     #141b25;
+  --surface:  #1a2332;
+  --border:   #1f2d40;
+  --border-2: #2a3f5a;
+
+  --accent:   #3b82f6;
+  --accent-2: #60a5fa;
+  --accent-glow: rgba(59, 130, 246, 0.25);
+
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+
+  --text:     #e8edf5;
+  --text-2:   #8fa3bf;
+  --text-3:   #4a6480;
+
+  /* Typography */
+  --font-display: "Syne", sans-serif;
+  --font-body:    "DM Sans", sans-serif;
+
+  /* Spacing */
+  --r-sm:  6px;
+  --r-md:  12px;
+  --r-lg:  16px;
+  --r-xl:  24px;
+  --r-full: 9999px;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-2); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* LiveKit component overrides */
+[data-lk-theme] {
+  --lk-bg: var(--bg-2);
+  --lk-bg2: var(--bg-3);
+  --lk-bg3: var(--surface);
+  --lk-border-color: var(--border);
+  --lk-accent-bg: var(--accent);
+  --lk-primary-text: var(--text);
+  --lk-secondary-text: var(--text-2);
+  --lk-danger-bg: var(--red);
+  height: 100%;
+  font-family: var(--font-body) !important;
+}
+
+/* Animate in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 var(--accent-glow); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 12px transparent; }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 transparent; }
+}
+
+.animate-fade-up { animation: fadeUp 0.5s ease both; }
+.animate-fade-in { animation: fadeIn 0.4s ease both; }

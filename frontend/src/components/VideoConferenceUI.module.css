@@ -1,0 +1,308 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Top Bar ─────────────────────────────────────────── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 60px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.topLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoIcon { font-size: 20px; color: var(--accent); }
+
+.logoText {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.topCenter {
+  display: flex;
+  align-items: center;
+}
+
+.roomChip {
+  padding: 5px 14px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.topRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clock {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-family: var(--font-display);
+}
+
+.participantCount {
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 4px 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+}
+
+.iconBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text-2);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.iconBtn:hover { background: var(--surface); border-color: var(--border-2); }
+.iconBtnActive {
+  background: rgba(59,130,246,0.15);
+  border-color: rgba(59,130,246,0.4);
+}
+
+/* ── Info Drawer ──────────────────────────────────────── */
+.infoDrawer {
+  position: absolute;
+  top: 68px;
+  right: 20px;
+  z-index: 30;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.infoTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.infoLabel { font-size: 13px; color: var(--text-3); }
+.infoValue { font-size: 13px; color: var(--text); font-weight: 500; }
+
+.copyInvite {
+  margin-top: 4px;
+  width: 100%;
+  padding: 9px;
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--r-md);
+  color: var(--accent-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: var(--font-body);
+}
+.copyInvite:hover { background: rgba(59,130,246,0.2); }
+
+/* ── Body ────────────────────────────────────────────── */
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gridArea {
+  flex: 1;
+  overflow: hidden;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  height: 100%;
+}
+
+/* Override LiveKit grid tiles */
+.tile {
+  border-radius: var(--r-lg) !important;
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── Empty state ──────────────────────────────────────── */
+.emptyRoom {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.emptyIcon { font-size: 48px; }
+
+.emptyRoom h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.emptyRoom p { font-size: 14px; color: var(--text-2); }
+
+.emptyCode {
+  margin-top: 4px;
+  padding: 8px 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-2);
+  letter-spacing: 1px;
+}
+
+/* ── Chat Sidebar ────────────────────────────────────── */
+.chatSidebar {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--bg-2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.closeChat {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  transition: color 0.2s, background 0.2s;
+}
+.closeChat:hover { color: var(--text); background: var(--bg-3); }
+
+.chat {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Bottom Bar ──────────────────────────────────────── */
+.bottomBar {
+  height: 80px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 20;
+  position: relative;
+}
+
+/* Override LiveKit control bar styles */
+.controls {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.leaveBtn {
+  padding: 10px 22px;
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-full);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
+  position: absolute;
+  right: 24px;
+}
+.leaveBtn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
