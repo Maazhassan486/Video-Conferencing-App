@@ -344,21 +344,31 @@
   letter-spacing: 0.8px;
 }
 
-/* ── Chat Sidebar ────────────────────────────────────── */
+/* ── Chat Sidebar ──────────────────────────────────────
+ *  The sidebar stays mounted so the inner LiveKit <Chat />
+ *  retains its message-history state across open/close. We
+ *  animate width + opacity instead of conditional rendering.
+ */
 .chatSidebar {
-  width: 340px;
   flex-shrink: 0;
   background: var(--bg-2);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideIn 0.18s ease;
+  transition: width 0.2s ease, opacity 0.18s ease, border-color 0.2s ease;
 }
 
-@keyframes slideIn {
-  from { transform: translateX(20px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
+.chatSidebarOpen {
+  width: 340px;
+  opacity: 1;
+}
+
+.chatSidebarClosed {
+  width: 0;
+  opacity: 0;
+  border-left-color: transparent;
+  pointer-events: none;
 }
 
 .chatHeader {
@@ -390,7 +400,13 @@
 }
 .closeChat:hover { color: var(--text); background: var(--bg-3); }
 
-.chat { flex: 1; overflow: hidden; }
+.chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 
 /* ── Bottom Control Pill ─────────────────────────────── */
 .bottomBar {
@@ -465,7 +481,12 @@
   .topRight { gap: 6px; }
   .participantCount { padding: 6px 10px; }
   .infoDrawer { right: 12px; left: 12px; width: auto; }
-  .chatSidebar { width: 100%; position: absolute; inset: 60px 0 96px 0; }
+  .chatSidebarOpen {
+    width: 100%;
+    position: absolute;
+    inset: 60px 0 96px 0;
+  }
+  .chatSidebarClosed { width: 0; }
   .leaveBtn span { display: none; }
   .leaveBtn { padding: 10px 12px; }
   .gridArea { padding: 10px 10px 0; }

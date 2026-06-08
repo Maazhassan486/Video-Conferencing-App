@@ -72,13 +72,24 @@ html, body, #root {
   border: none !important;
   padding: 0 !important;
   gap: 6px !important;
+  display: inline-flex !important;
+  align-items: center;
 }
 
-[data-lk-theme] .lk-button,
-[data-lk-theme] .lk-button-group > button {
+/* Hide the device-picker chevrons inside the control bar.
+ * They're functional but look like a bare arrow with no label,
+ * which is confusing. Users pick their devices in the lobby. */
+[data-lk-theme] .lk-control-bar .lk-button-group-menu {
+  display: none !important;
+}
+
+/* Style every control-bar / chat-form button as a rounded pill */
+[data-lk-theme] .lk-control-bar .lk-button,
+[data-lk-theme] .lk-control-bar .lk-button-group > .lk-button,
+[data-lk-theme] .lk-chat-form-button {
   height: 44px;
   min-width: 44px;
-  padding: 0 14px;
+  padding: 0 16px !important;
   border-radius: 9999px !important;
   background: var(--bg-3) !important;
   color: var(--text) !important;
@@ -86,34 +97,52 @@ html, body, #root {
   font-family: var(--font-body) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   gap: 6px;
   transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
 }
 
-[data-lk-theme] .lk-button:hover,
-[data-lk-theme] .lk-button-group > button:hover {
+[data-lk-theme] .lk-control-bar .lk-button:hover,
+[data-lk-theme] .lk-control-bar .lk-button-group > .lk-button:hover {
   background: var(--surface) !important;
   border-color: var(--border-2) !important;
   transform: translateY(-1px);
 }
 
-/* Muted/off state — red */
-[data-lk-theme] .lk-button[aria-pressed="false"],
-[data-lk-theme] .lk-button[data-lk-source][data-lk-enabled="false"],
-[data-lk-theme] .lk-button.lk-button-muted {
+/* Muted state — ONLY for mic and camera.
+ * Screen share is also `aria-pressed="false"` in its default
+ * (not-currently-sharing) state, which is normal, not an error. */
+[data-lk-theme] .lk-control-bar .lk-button[data-lk-source="microphone"][aria-pressed="false"],
+[data-lk-theme] .lk-control-bar .lk-button[data-lk-source="camera"][aria-pressed="false"] {
   background: rgba(239,68,68,0.18) !important;
   border-color: rgba(239,68,68,0.4) !important;
   color: #fca5a5 !important;
 }
 
-/* Device-menu chevron buttons inside button-groups */
-[data-lk-theme] .lk-button-group > .lk-button-menu,
-[data-lk-theme] .lk-button-group-menu > button {
-  min-width: 34px;
-  padding: 0 8px;
+/* Screen-share: blue accent while actively sharing */
+[data-lk-theme] .lk-control-bar .lk-button[data-lk-source="screen_share"][aria-pressed="true"] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Size the LiveKit icons inside control-bar buttons without
+ * touching their internal fills (LiveKit's icons use a mix of
+ * fill="none" outlines and fill="white" inner shapes — forcing
+ * currentColor would turn them into solid blobs that look broken). */
+[data-lk-theme] .lk-control-bar .lk-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* button-group lays out toggle + (hidden) chevron — keep it inline */
+[data-lk-theme] .lk-control-bar .lk-button-group {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0;
 }
 
 /* Participant tile label */
@@ -149,38 +178,83 @@ html, body, #root {
   border-radius: 14px !important;
 }
 
-/* Chat panel */
+/* ── Chat panel ───────────────────────────────────────
+ *  LiveKit's stylesheet sets `.lk-chat` to `display:grid` with a
+ *  three-row template. We swap to flex-column so that we can
+ *  cleanly let messages fill the middle and pin the form bottom.
+ */
 [data-lk-theme] .lk-chat {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100% !important;
   background: var(--bg-2) !important;
-  border: none !important;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  border-left: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
 }
+
+/* Our wrapper already shows a custom header — hide LiveKit's */
+[data-lk-theme] .lk-chat > .lk-chat-header { display: none !important; }
+
 [data-lk-theme] .lk-chat-messages {
-  flex: 1;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
   padding: 14px !important;
+  gap: 10px !important;
+  overflow-y: auto !important;
 }
+
 [data-lk-theme] .lk-chat-entry {
-  background: var(--bg-3) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  padding: 8px 12px !important;
-  margin-bottom: 8px !important;
+  background: transparent !important;
+  margin: 0 !important;
+  gap: 4px !important;
 }
-[data-lk-theme] .lk-message-body { color: var(--text) !important; font-size: 13.5px !important; }
-[data-lk-theme] .lk-meta-data, [data-lk-theme] .lk-message-meta {
+[data-lk-theme] .lk-chat-entry .lk-meta-data {
   color: var(--text-3) !important;
   font-size: 11.5px !important;
-}
-[data-lk-theme] .lk-chat-form {
-  padding: 12px !important;
-  border-top: 1px solid var(--border) !important;
-  background: var(--bg-2) !important;
-  display: flex;
+  padding: 0 !important;
   gap: 8px;
 }
+[data-lk-theme] .lk-chat-entry .lk-participant-name {
+  margin-top: 0 !important;
+  color: var(--text-2) !important;
+  font-weight: 600;
+}
+[data-lk-theme] .lk-chat-entry .lk-message-body {
+  border-radius: 14px !important;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
+  max-width: 90% !important;
+}
+[data-lk-theme] .lk-chat-entry[data-lk-message-origin="local"] .lk-message-body {
+  background: var(--accent) !important;
+  color: #fff !important;
+  align-self: flex-end;
+}
+[data-lk-theme] .lk-chat-entry[data-lk-message-origin="remote"] .lk-message-body {
+  background: var(--bg-3) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+}
+
+[data-lk-theme] .lk-chat-form {
+  flex: 0 0 auto !important;
+  max-height: none !important;
+  padding: 12px !important;
+  gap: 8px !important;
+  border-top: 1px solid var(--border) !important;
+  background: var(--bg-2) !important;
+  display: flex !important;
+  align-items: center;
+}
+
 [data-lk-theme] .lk-chat-form-input {
+  flex: 1;
+  width: 100%;
   background: var(--bg-3) !important;
   border: 1px solid var(--border) !important;
   border-radius: 9999px !important;
@@ -189,19 +263,21 @@ html, body, #root {
   font-family: var(--font-body) !important;
   font-size: 13.5px !important;
   outline: none;
-  flex: 1;
+  height: 40px;
 }
+[data-lk-theme] .lk-chat-form-input::placeholder { color: var(--text-3); }
 [data-lk-theme] .lk-chat-form-input:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+
 [data-lk-theme] .lk-chat-form-button {
   background: var(--accent) !important;
   color: #fff !important;
   border: none !important;
-  border-radius: 9999px !important;
+  height: 40px !important;
+  min-width: auto !important;
   padding: 0 16px !important;
-  height: 40px;
   font-weight: 600 !important;
 }
 [data-lk-theme] .lk-chat-form-button:hover { background: #2563eb !important; }

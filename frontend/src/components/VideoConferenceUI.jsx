@@ -168,22 +168,30 @@ export default function VideoConferenceUI({ roomName, username, onLeave }) {
           )}
         </div>
 
-        {chatOpen && (
-          <div className={styles.chatSidebar}>
-            <div className={styles.chatHeader}>
-              <span>In-call messages</span>
-              <button
-                type="button"
-                className={styles.closeChat}
-                onClick={() => setChatOpen(false)}
-                aria-label="Close chat"
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-            <Chat className={styles.chat} />
+        {/*
+         * Keep <Chat /> mounted at all times — LiveKit's Chat stores
+         * message history in local React state, so unmounting it
+         * (e.g. via {chatOpen && ...}) would wipe the conversation
+         * every time the user closes the panel.
+         */}
+        <div
+          className={`${styles.chatSidebar} ${chatOpen ? styles.chatSidebarOpen : styles.chatSidebarClosed}`}
+          aria-hidden={!chatOpen}
+        >
+          <div className={styles.chatHeader}>
+            <span>In-call messages</span>
+            <button
+              type="button"
+              className={styles.closeChat}
+              onClick={() => setChatOpen(false)}
+              aria-label="Close chat"
+              tabIndex={chatOpen ? 0 : -1}
+            >
+              <XIcon size={16} />
+            </button>
           </div>
-        )}
+          <Chat className={styles.chat} />
+        </div>
       </div>
 
       {/* ── Bottom Control Pill ─────────────────────────── */}
