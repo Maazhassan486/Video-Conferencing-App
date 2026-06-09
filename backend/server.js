@@ -7,21 +7,33 @@ import Groq from "groq-sdk";
 dotenv.config();
 
 const app = express();
+
+// CORS — allow:
+//   • localhost dev (any port)
+//   • any *.vercel.app deployment (production + previews) so we don't
+//     have to whitelist every new preview URL by hand
+//   • anything explicitly listed in ALLOWED_ORIGINS (comma-separated)
+// Safe to be permissive here: the API doesn't use cookies and LiveKit
+// tokens are short-lived JWTs returned in the response body.
+const explicitAllowed = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    // Allow the production Vercel domain plus local dev origins. Extend
-    // ALLOWED_ORIGINS in your env (comma-separated) to whitelist more.
-    origin: [
-      "https://video-conferencing-app-two-nu.vercel.app",
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      ...((process.env.ALLOWED_ORIGINS || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)),
-    ],
+    origin: (origin, cb) => {
+      // Same-origin / curl / server-to-server requests have no Origin header
+      if (!origin) return cb(null, true);
+      if (explicitAllowed.includes(origin)) return cb(null, true);
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
+      if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true);
+      if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return cb(null, true);
+      return cb(new Error(`CORS: origin not allowed: ${origin}`));
+    },
   })
 );
+app.options("*", cors()); // ensure preflight succeeds
 app.use(express.json());
 
 const {
@@ -182,7 +194,7 @@ app.post("/ask", async (req, res) => {
 
   const systemPrompt =
     "You are NexMeet, an AI assistant who participates in a live video meeting alongside the human attendees. " +
-    `The meeting room is "${room || "(unknown)"}".\n\n` +
+    `The meeting room name is "${room || "(unknown)"}" — this is just an auto-generated room ID; do NOT treat it as a topic.\n\n` +
     "BEHAVIOR\n" +
     "• You are in 'conversation mode' — recent turns from multiple participants are provided as context. " +
     "Each user message is prefixed with the speaker's display name and a colon (e.g. 'Alice: ...'). " +
@@ -191,9 +203,14 @@ app.post("/ask", async (req, res) => {
     "If the latest user turn isn't addressed to you, output exactly the single token: <silent>\n" +
     "• Otherwise reply directly. Keep responses concise — 1 to 3 sentences, ~60 words max — because your answer will be read aloud.\n" +
     "• Plain conversational text only. No markdown, no bullet lists, no headings, no code fences.\n" +
-    "• Be warm and natural, like a sharp colleague on the call. Don't preface with 'Sure!' or 'Great question!'.\n" +
-    "• If asked to summarize or recap, use the prior turns in this conversation.\n" +
-    "• If you don't know something or it requires real-time data, say so briefly.\n" +
+    "• Be warm and natural, like a sharp colleague on the call. Don't preface with 'Sure!' or 'Great question!'.\n\n" +
+    "GROUNDING — THIS IS CRITICAL\n" +
+    "• Only use facts that appear in the provided conversation turns. Do NOT invent participants, names, decisions, projects, deadlines, or events. " +
+    "If 'Rachel' or 'the design phase' has not been mentioned by an actual participant in this conversation, you may not bring them up.\n" +
+    "• If the user's question is vague (e.g. 'today', 'what we talking about', 'recap'), and the conversation so far is empty or doesn't contain enough information, " +
+    "say so honestly. Example: 'We haven't really gotten into anything yet — what would you like to discuss?' Do not fabricate an agenda.\n" +
+    "• The list of real participants is exactly: the names that appear before the colon in the user messages below. No one else exists in this meeting.\n" +
+    "• If you don't know something or it requires real-time data you weren't given, say so in one sentence.\n" +
     `${askedBy ? `\nThe most recent person who explicitly addressed you is ${askedBy}.\n` : ""}`;
 
   const lastTurn = cleaned[cleaned.length - 1];

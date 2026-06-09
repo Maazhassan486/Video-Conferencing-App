@@ -5,15 +5,18 @@ import { useSpeechBroadcast } from "./useSpeechBroadcast.js";
 const BACKEND = import.meta.env.VITE_BACKEND_URL || "/api";
 const DATA_TOPIC = "nexmeet";
 
-// Wake phrases — only used to OPEN a conversation. Once a session is
-// open, the local user can continue speaking without repeating the
-// wake word. Matched case-insensitively; longest/multi-word variants
-// first so they take precedence.
-const WAKE_PHRASES = [
-  "hey agent", "hi agent", "ok agent", "okay agent", "yo agent",
-  "hey nexmeet", "hi nexmeet", "ok nexmeet", "okay nexmeet",
-  "hey next meet", "hey next-meet", "hey nex meet",
-];
+// Wake phrase detection.
+//
+// We use a regex with common Web-Speech mishearings of "agent" baked in,
+// because Chrome's STT routinely transcribes "hey agent" as one of:
+//   "hey agen", "hey a gent", "hey ajen", "hey engine", "hey a gen"
+// Anchoring to a wake prefix (hey / hi / hello / ok / okay / yo) keeps
+// false positives down while catching the realistic variants.
+//
+// Captures everything AFTER the wake phrase as the "tail" (the actual
+// turn the user wants the agent to act on).
+const WAKE_REGEX =
+  /\b(?:hey|hi|hello|ok|okay|yo)[\s,]+(agent[s]?|a\s*gent|agen|ajen|engine|nex\s*meet|nexmeet|next\s*meet)\b[\s,.!?:;—-]*(.*)$/i;
 
 // Phrases that explicitly END the conversation. The agent will not
 // answer these; the session simply closes.
@@ -40,18 +43,11 @@ const isBrowserSpeechSupported = () =>
   Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
 function findWakePhrase(text) {
-  const lower = text.toLowerCase();
-  for (const phrase of WAKE_PHRASES) {
-    const idx = lower.indexOf(phrase);
-    if (idx !== -1) {
-      const tail = text
-        .slice(idx + phrase.length)
-        .replace(/^[\s,.!?:;—-]+/, "")
-        .trim();
-      return { phrase, tail };
-    }
-  }
-  return null;
+  const match = WAKE_REGEX.exec(text);
+  if (!match) return null;
+  const phrase = match[0].slice(0, match[0].length - (match[2] || "").length).trim();
+  const tail = (match[2] || "").trim();
+  return { phrase, tail };
 }
 
 function isExitPhrase(text) {
@@ -385,14 +381,16 @@ export function useNexMeetAgent({ username, enabled }) {
 
       // Exit takes priority over everything else
       if (inSession && isExitPhrase(finalText)) {
+        console.log(`[NexMeet] exit phrase heard → ending session: "${finalText}"`);
         endSession();
         return;
       }
 
       const wake = findWakePhrase(finalText);
       if (wake) {
-        // Wake phrase fires regardless of session state. The trailing
-        // text (if any) is the first turn of the (possibly new) session.
+        console.log(
+          `[NexMeet] ✓ wake matched ("${wake.phrase}") tail="${wake.tail}"`
+        );
         extendSession();
         if (wake.tail.length >= 2) {
           ask(wake.tail, { fromVoice: true });
@@ -402,7 +400,12 @@ export function useNexMeetAgent({ username, enabled }) {
 
       // No wake phrase — only continue if a session is already open.
       if (inSession && finalText.length >= 2) {
+        console.log(`[NexMeet] in-session continuation: "${finalText}"`);
         ask(finalText, { fromVoice: true });
+      } else {
+        console.log(
+          `[NexMeet] heard but no wake phrase (not in session): "${finalText}"`
+        );
       }
     },
     [ask, endSession, extendSession, inSession]

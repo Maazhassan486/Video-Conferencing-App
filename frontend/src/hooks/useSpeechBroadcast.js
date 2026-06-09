@@ -88,6 +88,11 @@ export function useSpeechBroadcast({
       if (interim) onInterimRef.current?.(interim);
       const trimmed = finalText.trim();
       if (trimmed) {
+        // Visible in DevTools so you can see exactly what the recognizer
+        // heard. If the agent "didn't respond", check here first — it
+        // usually means the wake phrase wasn't matched, not that the
+        // mic missed you.
+        console.log(`[SpeechBroadcast] heard: "${trimmed}"`);
         broadcast(trimmed);
         onFinalRef.current?.(trimmed);
       }
@@ -95,7 +100,7 @@ export function useSpeechBroadcast({
 
     recognition.onerror = (e) => {
       if (e?.error && e.error !== "no-speech" && e.error !== "aborted") {
-        console.warn("SpeechBroadcast error:", e.error);
+        console.warn("[SpeechBroadcast] error:", e.error);
       }
     };
 
