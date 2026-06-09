@@ -250,6 +250,13 @@ app.post("/ask", async (req, res) => {
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-app.listen(PORT, () => {
-  console.log(`✅ LiveKit token server running at http://localhost:${PORT}`);
-});
+// On Vercel the platform invokes our exported Express app per request —
+// there's no long-lived process, so we must NOT call `listen()`. Locally
+// (and on Railway / any classic Node host) we do.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`✅ LiveKit token server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
